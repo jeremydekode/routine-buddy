@@ -184,12 +184,22 @@ const SUPABASE_STATE_ID = 1;
 
 const rehydrateState = (loadedState: any): AppState => {
     const today = new Date().toISOString().split('T')[0];
-    for (const key in loadedState.routines) {
-        const routineId = key as ActiveRoutineId;
-        if (INITIAL_ROUTINES[routineId]) {
-            loadedState.routines[routineId].theme = INITIAL_ROUTINES[routineId].theme;
+
+    // 1. Make routines safe by adding themes and handling corruption.
+    if (loadedState.routines && typeof loadedState.routines === 'object') {
+        for (const key in loadedState.routines) {
+            const routineId = key as ActiveRoutineId;
+            // Add back theme only if routine exists in constants and in the loaded state.
+            if (INITIAL_ROUTINES[routineId] && loadedState.routines[routineId]) {
+                loadedState.routines[routineId].theme = INITIAL_ROUTINES[routineId].theme;
+            }
         }
+    } else {
+        // If routines are missing or corrupt, reset to defaults.
+        loadedState.routines = INITIAL_ROUTINES;
     }
+
+    // 2. Set defaults for any potentially missing properties.
     loadedState.showPasswordModal = false;
     loadedState.passwordIsSet = !!localStorage.getItem(PASSWORD_KEY);
     loadedState.playtimeDuration = loadedState.playtimeDuration ?? 10;
@@ -198,8 +208,20 @@ const rehydrateState = (loadedState: any): AppState => {
     loadedState.enableMorning = loadedState.enableMorning ?? true;
     loadedState.enableAfterSchool = loadedState.enableAfterSchool ?? true;
     loadedState.enableBedtime = loadedState.enableBedtime ?? true;
-    loadedState.selectedDate = today;
+    loadedState.selectedDate = today; // Always start on today's date
     loadedState.taskHistory = loadedState.taskHistory || {};
+
+    // 3. Validate the active routine to prevent crashes.
+    const active = loadedState.activeRoutine as ActiveViewId;
+    const isValidRoutine = active && loadedState.routines[active as ActiveRoutineId];
+    if (!isValidRoutine && active !== 'Quests' && active !== 'Playtime') {
+        const routineOrder: ActiveRoutineId[] = ['Morning', 'After-School', 'Bedtime'];
+        const firstEnabled = routineOrder.find(id => loadedState.routines[id]);
+        loadedState.activeRoutine = firstEnabled || 'Quests';
+    } else if (!active) {
+        loadedState.activeRoutine = 'Morning'; // Default if none is set
+    }
+    
     return loadedState;
 };
 
@@ -232,7 +254,6 @@ const loadState = async (): Promise<AppState | undefined> => {
 const serializeStateForSaving = (state: AppState) => {
     const stateToSave: Partial<AppState> = {
         ...state,
-// FIX: Cast routines to 'any' during serialization to bypass type checking for the object that intentionally omits the non-serializable 'theme' property.
         routines: Object.fromEntries(
             Object.entries(state.routines).map(([routineId, routine]) => {
                 const { theme, ...serializableRoutine } = routine;
@@ -240,9 +261,9 @@ const serializeStateForSaving = (state: AppState) => {
             })
         ) as any,
     };
+    // Properties that should not be persisted or should be reset on load
     delete stateToSave.showPasswordModal;
     delete stateToSave.mode;
-    delete stateToSave.activeRoutine;
     delete stateToSave.selectedDate;
     return stateToSave;
 };
