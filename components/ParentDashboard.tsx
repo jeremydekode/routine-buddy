@@ -1,7 +1,8 @@
 import React, { useMemo, useState } from 'react';
 import { useAppContext } from '../hooks/useAppContext';
 import { StarIcon } from './icons/Icons';
-import { ActiveRoutineId, QuestId } from '../types';
+// FIX: Import DAYS_OF_WEEK to determine which tasks are scheduled for today.
+import { ActiveRoutineId, QuestId, DAYS_OF_WEEK } from '../types';
 
 const PendingApprovalCard: React.FC<{ questId: QuestId }> = ({ questId }) => {
     const { state, dispatch } = useAppContext();
@@ -32,24 +33,32 @@ const PendingApprovalCard: React.FC<{ questId: QuestId }> = ({ questId }) => {
 
 export const ParentDashboard: React.FC = () => {
     const { state, dispatch } = useAppContext();
-    const { routines, starCount, weeklyQuestPending, monthlyQuestPending, starAdjustmentLog } = state;
+    // FIX: Destructure taskHistory to calculate today's progress.
+    const { routines, starCount, weeklyQuestPending, monthlyQuestPending, starAdjustmentLog, taskHistory } = state;
 
     const [adjustmentAmount, setAdjustmentAmount] = useState('');
     const [adjustmentReason, setAdjustmentReason] = useState('');
 
     const stats = useMemo(() => {
+        // FIX: Calculate today's completion based on `taskHistory` instead of a non-existent `completed` property.
+        const todayStr = new Date().toISOString().split('T')[0];
+        const todayDay = DAYS_OF_WEEK[new Date().getUTCDay()];
+        
         let totalTasks = 0;
         let completedTasks = 0;
         
+        const completedTaskIdsForToday = new Set(taskHistory[todayStr] || []);
+
         for (const routineId in routines) {
             const routine = routines[routineId as ActiveRoutineId];
-            totalTasks += routine.tasks.length;
-            completedTasks += routine.tasks.filter(t => t.completed).length;
+            const tasksForToday = routine.tasks.filter(t => t.days.includes(todayDay));
+            totalTasks += tasksForToday.length;
+            completedTasks += tasksForToday.filter(t => completedTaskIdsForToday.has(t.id)).length;
         }
 
         const overallProgress = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
         return { overallProgress };
-    }, [routines]);
+    }, [routines, taskHistory]);
     
     const handleAdjustStars = (e: React.FormEvent) => {
         e.preventDefault();

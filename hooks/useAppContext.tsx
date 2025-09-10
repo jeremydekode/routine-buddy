@@ -13,18 +13,27 @@ const appReducer = (state: AppState, action: AppAction): AppState => {
             return { ...state, mode: state.mode === Mode.Child ? Mode.Parent : Mode.Child };
         case 'SET_ACTIVE_ROUTINE':
             return { ...state, activeRoutine: action.payload };
+        case 'SET_SELECTED_DATE':
+            return { ...state, selectedDate: action.payload };
         case 'TOGGLE_TASK_COMPLETION': {
-            const { routineId, taskId } = action.payload;
-            const newRoutines = { ...state.routines };
-            const routine = newRoutines[routineId];
-            const taskIndex = routine.tasks.findIndex(t => t.id === taskId);
-            if (taskIndex > -1) {
-                const updatedTask = { ...routine.tasks[taskIndex], completed: !routine.tasks[taskIndex].completed };
-                const newTasks = [...routine.tasks];
-                newTasks[taskIndex] = updatedTask;
-                newRoutines[routineId] = { ...routine, tasks: newTasks };
+            const { taskId, date } = action.payload;
+            const newHistory = { ...state.taskHistory };
+            const dateHistory = newHistory[date] ? [...newHistory[date]] : [];
+            const taskIndexInHistory = dateHistory.indexOf(taskId);
+
+            if (taskIndexInHistory > -1) {
+                dateHistory.splice(taskIndexInHistory, 1);
+            } else {
+                dateHistory.push(taskId);
             }
-            newState = { ...state, routines: newRoutines };
+
+            if (dateHistory.length > 0) {
+                newHistory[date] = dateHistory;
+            } else {
+                delete newHistory[date];
+            }
+            
+            newState = { ...state, taskHistory: newHistory };
             saveState(newState);
             return newState;
         }
@@ -35,7 +44,6 @@ const appReducer = (state: AppState, action: AppAction): AppState => {
              const newTask: Task = {
                  ...task,
                  id: new Date().toISOString(),
-                 completed: false,
              };
              newRoutines[routineId] = { ...routine, tasks: [...routine.tasks, newTask] };
              return { ...state, routines: newRoutines };
@@ -57,12 +65,6 @@ const appReducer = (state: AppState, action: AppAction): AppState => {
             const newRoutines = { ...state.routines };
             const routine = newRoutines[routineId];
             newRoutines[routineId] = { ...routine, tasks: routine.tasks.filter(t => t.id !== taskId) };
-            return { ...state, routines: newRoutines };
-        }
-        case 'UPDATE_ROUTINE_DAYS': {
-            const { routineId, days } = action.payload;
-            const newRoutines = { ...state.routines };
-            newRoutines[routineId] = { ...newRoutines[routineId], days };
             return { ...state, routines: newRoutines };
         }
         case 'UPDATE_QUEST': {
@@ -87,20 +89,12 @@ const appReducer = (state: AppState, action: AppAction): AppState => {
             return newState;
         }
         case 'RESET_DAILY_STATE': {
-            const newRoutines = { ...state.routines };
-            for (const key in newRoutines) {
-                const routineId = key as ActiveRoutineId;
-                newRoutines[routineId] = {
-                    ...newRoutines[routineId],
-                    tasks: newRoutines[routineId].tasks.map(task => ({ ...task, completed: false })),
-                };
-            }
             newState = {
                 ...state,
-                routines: newRoutines,
                 completedRoutinesToday: [],
                 playtimeStarted: false,
                 lastCompletionDate: new Date().toISOString().split('T')[0],
+                selectedDate: new Date().toISOString().split('T')[0],
             };
             saveState(newState);
             return newState;
@@ -189,6 +183,7 @@ export const PASSWORD_KEY = 'routine-buddy-password';
 const SUPABASE_STATE_ID = 1;
 
 const rehydrateState = (loadedState: any): AppState => {
+    const today = new Date().toISOString().split('T')[0];
     for (const key in loadedState.routines) {
         const routineId = key as ActiveRoutineId;
         if (INITIAL_ROUTINES[routineId]) {
@@ -203,6 +198,8 @@ const rehydrateState = (loadedState: any): AppState => {
     loadedState.enableMorning = loadedState.enableMorning ?? true;
     loadedState.enableAfterSchool = loadedState.enableAfterSchool ?? true;
     loadedState.enableBedtime = loadedState.enableBedtime ?? true;
+    loadedState.selectedDate = today;
+    loadedState.taskHistory = loadedState.taskHistory || {};
     return loadedState;
 };
 
@@ -233,17 +230,20 @@ const loadState = async (): Promise<AppState | undefined> => {
 };
 
 const serializeStateForSaving = (state: AppState) => {
-    const stateToSave = {
+    const stateToSave: Partial<AppState> = {
         ...state,
+// FIX: Cast routines to 'any' during serialization to bypass type checking for the object that intentionally omits the non-serializable 'theme' property.
         routines: Object.fromEntries(
             Object.entries(state.routines).map(([routineId, routine]) => {
                 const { theme, ...serializableRoutine } = routine;
                 return [routineId, serializableRoutine];
             })
-        ),
-        showPasswordModal: undefined,
+        ) as any,
     };
     delete stateToSave.showPasswordModal;
+    delete stateToSave.mode;
+    delete stateToSave.activeRoutine;
+    delete stateToSave.selectedDate;
     return stateToSave;
 };
 
@@ -285,6 +285,8 @@ const getDefaultState = (): AppState => ({
     enableMorning: true,
     enableAfterSchool: true,
     enableBedtime: true,
+    selectedDate: new Date().toISOString().split('T')[0],
+    taskHistory: {},
 });
 
 const AppContext = createContext<{ state: AppState; dispatch: Dispatch<AppAction> } | undefined>(undefined);

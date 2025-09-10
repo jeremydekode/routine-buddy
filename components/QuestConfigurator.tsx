@@ -1,5 +1,6 @@
 import React from 'react';
 import { Quest } from '../types';
+import { TrophyIcon } from './icons/Icons';
 
 interface QuestEditorCardProps {
     quest: Quest;
@@ -16,13 +17,12 @@ const QuestEditorCard: React.FC<QuestEditorCardProps> = ({ quest, onUpdate, titl
 
     const handleGoalChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const newGoal = parseInt(e.target.value, 10);
-        // Persist 0 to draft state if input is empty/invalid, which will be rendered as an empty string in the input.
         onUpdate({ ...quest, goal: isNaN(newGoal) || newGoal < 0 ? 0 : newGoal });
     };
 
     return (
         <div className={`p-4 rounded-xl ${colors.bg}`}>
-            <h3 className={`font-bold text-lg ${colors.text} mb-3`}>{title}</h3>
+            <h3 className={`font-bold text-lg ${colors.text} mb-3 flex items-center gap-2`}><TrophyIcon className="w-5 h-5" /> {title}</h3>
             <div className="space-y-3">
                 <div>
                     <label className="text-sm font-medium text-slate-600">Quest Name</label>

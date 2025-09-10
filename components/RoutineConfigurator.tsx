@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ActiveRoutineId, Day, DAYS_OF_WEEK, Routine, Task } from '../types';
+import { ActiveRoutineId, Routine, Task } from '../types';
 import { PlusIcon, TrashIcon, PencilIcon } from './icons/Icons';
 import { TaskEditorModal } from './TaskEditorModal';
 
@@ -27,21 +27,24 @@ export const RoutineConfigurator: React.FC<RoutineConfiguratorProps> = ({ routin
         setIsEditorOpen(true);
     };
 
-    const handleSaveTask = (taskData: Omit<Task, 'id' | 'completed'> & { id?: string }) => {
+    // FIX: Remove 'completed' from Omit type as it doesn't exist on Task.
+    const handleSaveTask = (taskData: Omit<Task, 'id'> & { id?: string }) => {
         const newRoutines = { ...routines };
         const currentRoutine = newRoutines[selectedRoutine];
 
         if (taskData.id) { // Existing task
             const taskIndex = currentRoutine.tasks.findIndex(t => t.id === taskData.id);
             if (taskIndex > -1) {
-                const updatedTask = { ...currentRoutine.tasks[taskIndex], ...taskData };
-                currentRoutine.tasks[taskIndex] = updatedTask;
+                // Ensure days property is always an array
+                const updatedTask = { ...currentRoutine.tasks[taskIndex], ...taskData, days: taskData.days || [] };
+                currentRoutine.tasks[taskIndex] = updatedTask as Task;
             }
         } else { // New task
              const newTask: Task = {
                  ...taskData,
                  id: new Date().toISOString(),
-                 completed: false,
+                 // FIX: Remove 'completed' property as it doesn't exist on Task type.
+                 days: taskData.days || [],
              };
              currentRoutine.tasks.push(newTask);
         }
@@ -57,17 +60,6 @@ export const RoutineConfigurator: React.FC<RoutineConfiguratorProps> = ({ routin
         onRoutinesChange(newRoutines);
     };
     
-    const handleDayToggle = (day: Day) => {
-        const newRoutines = { ...routines };
-        const currentRoutine = newRoutines[selectedRoutine];
-        const newDays = currentRoutine.days.includes(day)
-            ? currentRoutine.days.filter(d => d !== day)
-            : [...currentRoutine.days, day];
-        
-        newRoutines[selectedRoutine] = { ...currentRoutine, days: newDays };
-        onRoutinesChange(newRoutines);
-    };
-
     return (
         <div>
             <h2 className="text-2xl font-bold text-slate-700 mb-4">Edit Routines</h2>
@@ -87,21 +79,6 @@ export const RoutineConfigurator: React.FC<RoutineConfiguratorProps> = ({ routin
 
             {routine && (
                 <div>
-                    <h3 className="text-lg font-semibold text-slate-600 mb-3">Active Days</h3>
-                    <div className="flex flex-wrap gap-2 mb-6">
-                        {DAYS_OF_WEEK.map(day => (
-                            <button
-                                key={day}
-                                onClick={() => handleDayToggle(day)}
-                                className={`px-3 py-1 text-sm font-bold rounded-full transition-colors ${
-                                    routine.days.includes(day)
-                                    ? 'bg-purple-500 text-white'
-                                    : 'bg-slate-200 text-slate-600 hover:bg-slate-300'
-                                }`}
-                            >{day.slice(0, 3)}</button>
-                        ))}
-                    </div>
-
                     <h3 className="text-lg font-semibold text-slate-600 mb-3">Tasks for {routine.name}</h3>
                     <div className="space-y-3 mb-6">
                         {routine.tasks.map(task => (
@@ -109,7 +86,11 @@ export const RoutineConfigurator: React.FC<RoutineConfiguratorProps> = ({ routin
                                 <span className="mr-3 text-lg">{task.icon}</span>
                                 <div className="flex-grow">
                                     <p className="font-semibold text-slate-800">{task.title}</p>
-                                    <p className="text-sm text-slate-500">{task.description}</p>
+                                    <div className="flex gap-1 mt-1">
+                                        {task.days.map(day => (
+                                            <span key={day} className="text-xs font-bold text-purple-700 bg-purple-100 px-2 py-0.5 rounded-full">{day.slice(0,3)}</span>
+                                        ))}
+                                    </div>
                                 </div>
                                 <button onClick={() => handleOpenEditorForEdit(task)} className="text-slate-400 hover:text-purple-500 transition-colors p-2">
                                     <PencilIcon className="w-5 h-5" />

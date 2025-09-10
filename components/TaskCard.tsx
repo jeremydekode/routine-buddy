@@ -67,14 +67,20 @@ const ConfettiBurst: React.FC = () => (
 interface TaskCardProps {
     task: Task;
     routineId: ActiveRoutineId;
+    selectedDate: string;
 }
 
-export const TaskCard: React.FC<TaskCardProps> = ({ task, routineId }) => {
-    const { dispatch } = useAppContext();
+export const TaskCard: React.FC<TaskCardProps> = ({ task, routineId, selectedDate }) => {
+    const { state, dispatch } = useAppContext();
     const [timer, setTimer] = useState<number | null>(null);
     const [isTimerRunning, setIsTimerRunning] = useState(false);
     const [showConfetti, setShowConfetti] = useState(false);
     const [isBouncing, setIsBouncing] = useState(false);
+    
+    const today = new Date().toISOString().split('T')[0];
+    const isReadOnly = selectedDate !== today;
+
+    const isCompleted = state.taskHistory[selectedDate]?.includes(task.id) ?? false;
 
      useEffect(() => {
         if (showConfetti) {
@@ -92,7 +98,6 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, routineId }) => {
 
 
     useEffect(() => {
-        // FIX: The type `NodeJS.Timeout` is not available in browser environments. Switched to a compatible type.
         let interval: ReturnType<typeof setInterval> | null = null;
         if (isTimerRunning && timer !== null && timer > 0) {
             interval = setInterval(() => {
@@ -101,28 +106,29 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, routineId }) => {
         } else if (isTimerRunning && timer === 0) {
             setIsTimerRunning(false);
             setTimer(null);
-            if (!task.completed) {
+            if (!isCompleted) {
                 playTaskCompleteSound();
                 setShowConfetti(true);
-                dispatch({ type: 'TOGGLE_TASK_COMPLETION', payload: { routineId, taskId: task.id } });
+                dispatch({ type: 'TOGGLE_TASK_COMPLETION', payload: { taskId: task.id, date: selectedDate } });
             }
         }
         return () => {
             if (interval) clearInterval(interval);
         };
-    }, [isTimerRunning, timer, task.completed, dispatch, routineId, task.id]);
+    }, [isTimerRunning, timer, isCompleted, dispatch, task.id, selectedDate]);
     
     const handleToggle = () => {
-        if (!task.completed) {
+        if (isReadOnly) return;
+        if (!isCompleted) {
             playTaskCompleteSound();
             setShowConfetti(true);
         }
         setIsBouncing(true);
-        dispatch({ type: 'TOGGLE_TASK_COMPLETION', payload: { routineId, taskId: task.id } });
+        dispatch({ type: 'TOGGLE_TASK_COMPLETION', payload: { taskId: task.id, date: selectedDate } });
     };
 
     const handleStartTimer = () => {
-        if (task.duration && !task.completed) {
+        if (task.duration && !isCompleted && !isReadOnly) {
             setTimer(task.duration);
             setIsTimerRunning(true);
         }
@@ -132,7 +138,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, routineId }) => {
         e.stopPropagation();
         if ('speechSynthesis' in window) {
             const utterance = new SpeechSynthesisUtterance(task.title);
-            window.speechSynthesis.cancel(); // Cancel any current speech
+            window.speechSynthesis.cancel();
             window.speechSynthesis.speak(utterance);
         } else {
             console.warn("Text-to-speech is not supported in this browser.");
@@ -152,18 +158,13 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, routineId }) => {
     return (
         <div
             className={`relative flex items-center p-4 rounded-2xl shadow-lg transition-all duration-300 ${
-                task.completed ? 'bg-green-100/80' : 'bg-white/80'
+                isCompleted ? 'bg-green-100/80' : 'bg-white/80'
             } ${isBouncing ? 'animate-bounce-short' : ''}`}
         >
             <style>
                 {`
-                @keyframes bounce-short {
-                    0%, 100% { transform: translateY(0) scale(1); }
-                    50% { transform: translateY(-6px) scale(1.02); }
-                }
-                .animate-bounce-short {
-                    animation: bounce-short 0.3s ease-out;
-                }
+                @keyframes bounce-short { 0%, 100% { transform: translateY(0) scale(1); } 50% { transform: translateY(-6px) scale(1.02); } }
+                .animate-bounce-short { animation: bounce-short 0.3s ease-out; }
                 `}
             </style>
             {showConfetti && <ConfettiBurst />}
@@ -172,7 +173,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, routineId }) => {
             </div>
             <div className="flex-grow">
                  <div className="flex items-center gap-2">
-                    <h3 className={`font-bold text-lg text-slate-700 transition-colors ${task.completed ? 'line-through text-slate-400' : ''}`}>
+                    <h3 className={`font-bold text-lg text-slate-700 transition-colors ${isCompleted ? 'line-through text-slate-400' : ''}`}>
                         {task.title}
                     </h3>
                     <button
@@ -183,7 +184,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, routineId }) => {
                         <SpeakerIcon className="w-5 h-5" />
                     </button>
                 </div>
-                {hasTimer && !task.completed && (
+                {hasTimer && !isCompleted && (
                      <div className="mt-2 text-sm font-semibold text-indigo-600">
                         <i className="fa-regular fa-clock mr-1"></i>
                         {task.duration} seconds
@@ -199,10 +200,10 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, routineId }) => {
                     ) : (
                         <button
                             onClick={handleStartTimer}
-                            disabled={task.completed}
-                            className="bg-purple-500 text-white font-bold py-3 px-4 rounded-lg hover:bg-purple-600 transition disabled:bg-slate-300"
+                            disabled={isCompleted || isReadOnly}
+                            className="bg-purple-500 text-white font-bold py-3 px-4 rounded-lg hover:bg-purple-600 transition disabled:bg-slate-300 disabled:cursor-not-allowed"
                         >
-                            {task.completed ? 'Done!' : 'Start'}
+                            {isCompleted ? 'Done!' : 'Start'}
                         </button>
                     )
                 ) : (
@@ -210,16 +211,19 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, routineId }) => {
                         <input
                             type="checkbox"
                             id={checkboxId}
-                            checked={task.completed}
+                            checked={isCompleted}
                             onChange={handleToggle}
+                            disabled={isReadOnly}
                             className="hidden"
                         />
                         <label
                             htmlFor={checkboxId}
-                            className={`flex items-center justify-center w-12 h-12 rounded-full cursor-pointer transition-all duration-300 transform ${
-                                task.completed
+                            className={`flex items-center justify-center w-12 h-12 rounded-full transition-all duration-300 transform ${
+                                isReadOnly ? 'cursor-default' : 'cursor-pointer'
+                            } ${
+                                isCompleted
                                     ? 'bg-green-400 text-white scale-110 shadow-md'
-                                    : 'bg-slate-200 text-slate-400 hover:bg-slate-300'
+                                    : `bg-slate-200 text-slate-400 ${!isReadOnly && 'hover:bg-slate-300'}`
                             }`}
                         >
                             <i className="fa-solid fa-check text-2xl"></i>

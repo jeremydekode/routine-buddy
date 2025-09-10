@@ -13,9 +13,8 @@ export interface Task {
     id: string;
     title: string;
     icon: string; // emoji
-    completed: boolean;
+    days: Day[];
     duration?: number; // Optional: duration in seconds for timed tasks
-    // FIX: Add optional 'description' property to Task to align with its usage in RoutineConfigurator.
     description?: string;
 }
 
@@ -32,7 +31,6 @@ export interface Routine {
     id: ActiveRoutineId;
     name: string;
     tasks: Task[];
-    days: Day[];
     theme: RoutineTheme;
 }
 
@@ -66,7 +64,7 @@ export interface AppState {
     };
     activeRoutine: ActiveViewId;
     starCount: number;
-    completedRoutinesToday: ActiveRoutineId[];
+    completedRoutinesToday: ActiveRoutineId[]; // Note: This might become redundant with taskHistory
     lastCompletionDate: string; // YYYY-MM-DD
     weeklyQuestPending: boolean;
     monthlyQuestPending: boolean;
@@ -80,17 +78,19 @@ export interface AppState {
     enableMorning: boolean;
     enableAfterSchool: boolean;
     enableBedtime: boolean;
+    // New properties for calendar view and history
+    selectedDate: string; // YYYY-MM-DD
+    taskHistory: Record<string, string[]>; // Key: YYYY-MM-DD, Value: array of completed task IDs
 }
 
 // Actions
 export type AppAction =
     | { type: 'TOGGLE_MODE' }
     | { type: 'SET_ACTIVE_ROUTINE'; payload: ActiveViewId }
-    | { type: 'TOGGLE_TASK_COMPLETION'; payload: { routineId: ActiveRoutineId; taskId: string } }
-    | { type: 'ADD_TASK'; payload: { routineId: ActiveRoutineId; task: Omit<Task, 'id' | 'completed'> } }
+    | { type: 'TOGGLE_TASK_COMPLETION'; payload: { taskId: string; date: string } }
+    | { type: 'ADD_TASK'; payload: { routineId: ActiveRoutineId; task: Omit<Task, 'id'> } }
     | { type: 'UPDATE_TASK'; payload: { routineId: ActiveRoutineId; task: Task } }
     | { type: 'DELETE_TASK'; payload: { routineId: ActiveRoutineId; taskId: string } }
-    | { type: 'UPDATE_ROUTINE_DAYS'; payload: { routineId: ActiveRoutineId; days: Day[] } }
     | { type: 'UPDATE_QUEST'; payload: { quest: Quest } }
     | { type: 'AWARD_STAR_FOR_ROUTINE'; payload: { routineId: ActiveRoutineId } }
     | { type: 'RESET_DAILY_STATE' }
@@ -104,4 +104,5 @@ export type AppAction =
     | { type: 'HIDE_PASSWORD_MODAL' }
     | { type: 'UPDATE_PARENT_SETTINGS'; payload: { routines: Record<ActiveRoutineId, Routine>, quests: { weekly: Quest, monthly: Quest }, childName: string, playtimeDuration: number, enablePlaytime: boolean, enableMorning: boolean, enableAfterSchool: boolean, enableBedtime: boolean } }
     | { type: 'START_PLAYTIME' }
+    | { type: 'SET_SELECTED_DATE'; payload: string }
     | { type: 'HYDRATE_STATE', payload: AppState };

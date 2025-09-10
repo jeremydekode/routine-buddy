@@ -3,9 +3,10 @@ import { useAppContext } from '../hooks/useAppContext';
 import { RoutineView } from './RoutineView';
 import { QuestView } from './QuestView';
 import { PlaytimeView } from './PlaytimeView';
-import { Routine, DAYS_OF_WEEK, ActiveViewId, ActiveRoutineId } from '../types';
+import { CalendarView } from './CalendarView';
+import { Routine, DAYS_OF_WEEK, ActiveViewId, ActiveRoutineId, Task, Day } from '../types';
 import { QUESTS_THEME, PLAYTIME_THEME } from '../constants';
-import { StarIcon, ChevronLeftIcon, ChevronRightIcon } from './icons/Icons';
+import { StarIcon, CalendarIcon } from './icons/Icons';
 import { ThemedProgressBar } from './ThemedProgressBar';
 
 let audioContext: AudioContext | null = null;
@@ -64,7 +65,9 @@ export const ChildMode: React.FC = () => {
     const { state, dispatch } = useAppContext();
     const { 
         routines, 
-        activeRoutine, 
+        activeRoutine,
+        selectedDate, 
+        taskHistory,
         completedRoutinesToday, 
         childName, 
         enablePlaytime,
@@ -73,59 +76,78 @@ export const ChildMode: React.FC = () => {
         enableBedtime 
     } = state;
     const [showStarAnimation, setShowStarAnimation] = useState(false);
-
-    const isRoutineComplete = (routine: Routine): boolean => {
-        return routine.tasks.length > 0 && routine.tasks.every(t => t.completed);
+    const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+    
+    const selectedDay = useMemo(() => DAYS_OF_WEEK[new Date(selectedDate).getUTCDay()], [selectedDate]);
+    
+    const tasksForDay = (tasks: Task[], day: Day): Task[] => {
+        return tasks.filter(task => task.days.includes(day));
     };
 
-    const orderedEnabledRoutines = useMemo(() => {
+    const isRoutineCompleteOnDate = (routine: Routine, date: string): boolean => {
+        const dayOfWeek = DAYS_OF_WEEK[new Date(date).getUTCDay()];
+        const todaysTasks = tasksForDay(routine.tasks, dayOfWeek);
+        if (todaysTasks.length === 0) return true; // No tasks means complete
+        const completedTasksOnDate = taskHistory[date] || [];
+        return todaysTasks.every(t => completedTasksOnDate.includes(t.id));
+    };
+
+    const routinesForSelectedDay = useMemo(() => {
         const order: ActiveRoutineId[] = ['Morning', 'After-School', 'Bedtime'];
         return order
             .filter(id => 
-                (id === 'Morning' && enableMorning) ||
+                ((id === 'Morning' && enableMorning) ||
                 (id === 'After-School' && enableAfterSchool) ||
-                (id === 'Bedtime' && enableBedtime)
+                (id === 'Bedtime' && enableBedtime)) &&
+                tasksForDay(routines[id].tasks, selectedDay).length > 0
             )
             .map(id => routines[id]);
-    }, [routines, enableMorning, enableAfterSchool, enableBedtime]);
+    }, [routines, enableMorning, enableAfterSchool, enableBedtime, selectedDay]);
     
-    // Set initial routine on load
     useEffect(() => {
-        const today = DAYS_OF_WEEK[new Date().getDay()];
-        const firstIncompleteRoutine = orderedEnabledRoutines.find(routine => 
-            routine.days.includes(today) && !isRoutineComplete(routine)
-        );
-        const initialRoutineId = firstIncompleteRoutine ? firstIncompleteRoutine.id : (orderedEnabledRoutines[0]?.id || 'Quests');
-        dispatch({ type: 'SET_ACTIVE_ROUTINE', payload: initialRoutineId });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [enableMorning, enableAfterSchool, enableBedtime]); // Run only when enabled routines change
+        const isValidRoutineForDay = routinesForSelectedDay.some(r => r.id === activeRoutine);
+        const isSpecialView = activeRoutine === 'Quests' || activeRoutine === 'Playtime';
+    
+        // If the current active view is not a valid routine for the selected day,
+        // and it's not one of the special views, then we need to select a default view.
+        if (!isValidRoutineForDay && !isSpecialView) {
+            if (routinesForSelectedDay.length > 0) {
+                dispatch({ type: 'SET_ACTIVE_ROUTINE', payload: routinesForSelectedDay[0].id });
+            } else {
+                // If no routines for the day, default to Quests.
+                dispatch({ type: 'SET_ACTIVE_ROUTINE', payload: 'Quests' });
+            }
+        }
+    }, [routinesForSelectedDay, activeRoutine, dispatch]);
 
-
-    const isBedtimeComplete = useMemo(() => {
+    const isBedtimeCompleteToday = useMemo(() => {
+        const today = new Date().toISOString().split('T')[0];
         const bedtimeRoutine = routines['Bedtime'];
-        return bedtimeRoutine && isRoutineComplete(bedtimeRoutine);
-    }, [routines]);
+        return bedtimeRoutine && isRoutineCompleteOnDate(bedtimeRoutine, today);
+    }, [routines, taskHistory]);
 
     useEffect(() => {
+        const today = new Date().toISOString().split('T')[0];
         Object.values(routines).forEach(routine => {
-            if (isRoutineComplete(routine) && !completedRoutinesToday.includes(routine.id)) {
+            if (isRoutineCompleteOnDate(routine, today) && !completedRoutinesToday.includes(routine.id)) {
                 playStarEarnedSound();
                 dispatch({ type: 'AWARD_STAR_FOR_ROUTINE', payload: { routineId: routine.id } });
                 setShowStarAnimation(true);
                 setTimeout(() => setShowStarAnimation(false), 2000);
             }
         });
-    }, [routines, completedRoutinesToday, dispatch]);
+    }, [routines, taskHistory, completedRoutinesToday, dispatch]);
     
     const currentRoutineForDisplay = activeRoutine !== 'Quests' && activeRoutine !== 'Playtime' ? routines[activeRoutine] : undefined;
     
-    const { progress } = useMemo(() => {
-        if (!currentRoutineForDisplay) return { progress: 0 };
-        const completed = currentRoutineForDisplay.tasks.filter(task => task.completed).length;
-        const total = currentRoutineForDisplay.tasks.length;
-        const progressPercentage = total > 0 ? (completed / total) * 100 : 0;
-        return { progress: progressPercentage };
-    }, [currentRoutineForDisplay]);
+    const progress = useMemo(() => {
+        if (!currentRoutineForDisplay) return 0;
+        const routineTasksForDay = tasksForDay(currentRoutineForDisplay.tasks, selectedDay);
+        if (routineTasksForDay.length === 0) return 0;
+        const completedTasksOnDate = taskHistory[selectedDate] || [];
+        const completedCount = routineTasksForDay.filter(t => completedTasksOnDate.includes(t.id)).length;
+        return (completedCount / routineTasksForDay.length) * 100;
+    }, [currentRoutineForDisplay, selectedDay, selectedDate, taskHistory]);
 
     const displayTheme = useMemo(() => {
         if (activeRoutine === 'Quests') return QUESTS_THEME;
@@ -133,35 +155,6 @@ export const ChildMode: React.FC = () => {
         return currentRoutineForDisplay ? currentRoutineForDisplay : QUESTS_THEME;
     }, [activeRoutine, currentRoutineForDisplay]);
     
-    const getDisplayName = () => {
-        if (!displayTheme) return '';
-        if (displayTheme.id === 'Quests') return 'Quests';
-        if (displayTheme.id === 'Playtime') return 'Playtime!';
-        if ('name' in displayTheme) {
-            const routineName = displayTheme.name.replace(' Routine', '');
-            return `${childName}'s ${routineName}`;
-        }
-        return "Let's Go!";
-    };
-    
-    const activeRoutineIndex = useMemo(() => 
-        orderedEnabledRoutines.findIndex(r => r.id === activeRoutine),
-    [orderedEnabledRoutines, activeRoutine]);
-
-    const canGoBack = activeRoutineIndex > 0;
-    const canGoNext = activeRoutineIndex !== -1 && activeRoutineIndex < orderedEnabledRoutines.length - 1;
-    
-    const handleBack = () => {
-        if (canGoBack) {
-            dispatch({ type: 'SET_ACTIVE_ROUTINE', payload: orderedEnabledRoutines[activeRoutineIndex - 1].id });
-        }
-    };
-    const handleNext = () => {
-        if (canGoNext) {
-            dispatch({ type: 'SET_ACTIVE_ROUTINE', payload: orderedEnabledRoutines[activeRoutineIndex + 1].id });
-        }
-    };
-
     const renderContent = () => {
         switch (activeRoutine) {
             case 'Quests':
@@ -169,98 +162,59 @@ export const ChildMode: React.FC = () => {
             case 'Playtime':
                 return <PlaytimeView />;
             default:
-                return currentRoutineForDisplay ? <RoutineView key={currentRoutineForDisplay.id} routine={currentRoutineForDisplay} /> : <QuestView />;
+                return currentRoutineForDisplay ? <RoutineView key={currentRoutineForDisplay.id} routine={currentRoutineForDisplay} selectedDate={selectedDate} /> : <QuestView />;
         }
     };
     
     const navItems = useMemo(() => {
-        const items: (Routine | typeof QUESTS_THEME | typeof PLAYTIME_THEME)[] = [...orderedEnabledRoutines];
+        const items: (Routine | typeof QUESTS_THEME | typeof PLAYTIME_THEME)[] = [...routinesForSelectedDay];
         items.push(QUESTS_THEME);
-        if (isBedtimeComplete && enablePlaytime) {
+        if (isBedtimeCompleteToday && enablePlaytime) {
             items.push(PLAYTIME_THEME);
         }
         return items;
-    }, [orderedEnabledRoutines, isBedtimeComplete, enablePlaytime]);
+    }, [routinesForSelectedDay, isBedtimeCompleteToday, enablePlaytime]);
 
     return (
-        <div className="pt-16 pb-24">
+        <div className="relative pt-4 pb-24">
              <style>
                 {`
-                .animate-reward-bounce {
-                    animation: reward-bounce 1s ease-in-out;
-                }
-                @keyframes reward-bounce {
-                    0%, 100% {
-                        transform: translateY(-15%) scale(1);
-                    }
-                    50% {
-                        transform: translateY(0) scale(1.1);
-                    }
-                }
-                .shadow-t-lg {
-                    box-shadow: 0 -4px 6px -1px rgb(0 0 0 / 0.1), 0 -2px 4px -2px rgb(0 0 0 / 0.1);
-                }
-                @keyframes burst {
-                    0% {
-                        transform: translate(0, 0) rotate(0deg) scale(0.5);
-                        opacity: 1;
-                        background-color: var(--bg-color);
-                    }
-                    100% {
-                        transform:
-                            rotate(var(--angle))
-                            translateX(var(--distance))
-                            rotate(calc(-1 * var(--angle)))
-                            scale(0);
-                        opacity: 0;
-                        background-color: var(--bg-color);
-                    }
-                }
-                @keyframes sparkle {
-                    0%, 100% { transform: scale(1); filter: brightness(1.2); }
-                    50% { transform: scale(1.2); filter: brightness(1.8); }
-                }
-                .animate-sparkle {
-                    animation: sparkle 0.8s ease-in-out infinite;
-                }
+                .animate-reward-bounce { animation: reward-bounce 1s ease-in-out; }
+                @keyframes reward-bounce { 0%, 100% { transform: translateY(-15%) scale(1); } 50% { transform: translateY(0) scale(1.1); } }
+                .shadow-t-lg { box-shadow: 0 -4px 6px -1px rgb(0 0 0 / 0.1), 0 -2px 4px -2px rgb(0 0 0 / 0.1); }
+                @keyframes sparkle { 0%, 100% { transform: scale(1); filter: brightness(1.2); } 50% { transform: scale(1.2); filter: brightness(1.8); } }
+                .animate-sparkle { animation: sparkle 0.8s ease-in-out infinite; }
                 `}
             </style>
             {showStarAnimation && <StarAnimation />}
 
-            <div className="text-center mb-6">
-                <div className="inline-block p-4 bg-white/50 rounded-full shadow-lg">
-                    {displayTheme?.theme.icon}
-                </div>
-                <h1 className="text-4xl md:text-5xl font-bold text-slate-700 mt-4">{getDisplayName()}</h1>
-                 <p className="text-slate-500">
-                    {activeRoutine === 'Quests' 
-                        ? "Check your awesome progress!"
-                        : activeRoutine === 'Playtime' 
-                            ? 'Time for some fun!' 
-                            : "Let's get started!"}
-                </p>
-            </div>
+            <button
+                onClick={() => setIsCalendarOpen(true)}
+                className="absolute top-4 left-4 z-20 bg-white/70 backdrop-blur-sm rounded-full p-3 shadow-md hover:bg-white transition-all focus:outline-none focus:ring-2 focus:ring-purple-500"
+                aria-label="Open calendar"
+            >
+                <CalendarIcon className="w-6 h-6 text-slate-600" />
+            </button>
             
+            <header className="text-center mb-6 pt-16">
+                <h1 className="text-3xl md:text-4xl font-bold text-slate-800">Hi, {childName}!</h1>
+                <p className="text-slate-500 font-semibold">{new Date(selectedDate.replace(/-/g, '/')).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</p>
+            </header>
+
+            {isCalendarOpen && (
+                <div 
+                    className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+                    onClick={() => setIsCalendarOpen(false)}
+                >
+                    <div onClick={(e) => e.stopPropagation()}>
+                        <CalendarView onClose={() => setIsCalendarOpen(false)} />
+                    </div>
+                </div>
+            )}
+
             {currentRoutineForDisplay && (
                  <ThemedProgressBar progress={progress} themeColorClass={currentRoutineForDisplay.theme.color} />
             )}
-
-            <div className="flex items-center justify-between my-4">
-                <button
-                    onClick={handleBack}
-                    disabled={!canGoBack}
-                    className="flex items-center gap-2 bg-white/60 backdrop-blur-sm rounded-full p-3 shadow-md hover:bg-white transition-all focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-30 disabled:cursor-not-allowed"
-                >
-                    <ChevronLeftIcon className="w-6 h-6 text-slate-600" />
-                </button>
-                 <button
-                    onClick={handleNext}
-                    disabled={!canGoNext}
-                    className="flex items-center gap-2 bg-white/60 backdrop-blur-sm rounded-full p-3 shadow-md hover:bg-white transition-all focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-30 disabled:cursor-not-allowed"
-                >
-                    <ChevronRightIcon className="w-6 h-6 text-slate-600" />
-                </button>
-            </div>
            
             {renderContent()}
            

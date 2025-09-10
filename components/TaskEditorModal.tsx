@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Task } from '../types';
+import { Task, Day, DAYS_OF_WEEK } from '../types';
 
 interface TaskEditorModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onSave: (taskData: Omit<Task, 'id' | 'completed'> & { id?: string }) => void;
+    onSave: (taskData: Omit<Task, 'id'> & { id?: string }) => void;
     taskToEdit: Task | null;
     routineId: string;
 }
@@ -13,41 +13,53 @@ const ICON_OPTIONS = ['🌟', '🧸', '🍎', '🦷', '👕', '🛏️', '📖',
 
 export const TaskEditorModal: React.FC<TaskEditorModalProps> = ({ isOpen, onClose, onSave, taskToEdit, routineId }) => {
     const [title, setTitle] = useState('');
-    // FIX: Add state for the new description field.
     const [description, setDescription] = useState('');
     const [icon, setIcon] = useState('🌟');
     const [duration, setDuration] = useState('');
+    const [days, setDays] = useState<Day[]>(DAYS_OF_WEEK);
 
     useEffect(() => {
         if (isOpen) {
             if (taskToEdit) {
                 setTitle(taskToEdit.title);
                 setIcon(taskToEdit.icon);
-                // FIX: Populate description from the task being edited.
                 setDescription(taskToEdit.description || '');
                 setDuration(taskToEdit.duration ? String(taskToEdit.duration) : '');
+                setDays(taskToEdit.days || DAYS_OF_WEEK);
             } else {
                 // Reset for new task
                 setTitle('');
                 setIcon('🌟');
-                // FIX: Reset description for a new task.
                 setDescription('');
                 setDuration('');
+                setDays(DAYS_OF_WEEK);
             }
         }
     }, [taskToEdit, isOpen]);
+
+    const handleDayToggle = (day: Day) => {
+        setDays(prevDays => 
+            prevDays.includes(day)
+            ? prevDays.filter(d => d !== day)
+            : [...prevDays, day]
+        );
+    };
 
     const handleSave = () => {
         if (!title.trim()) {
             alert('Task title is required.');
             return;
         }
+        if (days.length === 0) {
+            alert('Please select at least one day for the task.');
+            return;
+        }
         onSave({
             id: taskToEdit?.id,
             title: title.trim(),
-            // FIX: Include description in the saved task data.
             description: description.trim() || undefined,
             icon: icon,
+            days: days,
             duration: duration ? parseInt(duration, 10) : undefined,
         });
         onClose();
@@ -70,7 +82,6 @@ export const TaskEditorModal: React.FC<TaskEditorModalProps> = ({ isOpen, onClos
                             className="w-full mt-1 p-2 border border-slate-300 rounded-lg"
                         />
                     </div>
-                    {/* FIX: Add an input field for the optional task description. */}
                     <div>
                         <label className="text-sm font-medium text-slate-600">Description (optional)</label>
                         <input
@@ -98,6 +109,22 @@ export const TaskEditorModal: React.FC<TaskEditorModalProps> = ({ isOpen, onClos
                                 >
                                     {ico}
                                 </button>
+                            ))}
+                        </div>
+                    </div>
+                     <div>
+                        <h3 className="text-sm font-medium text-slate-600 mb-2">Active Days</h3>
+                        <div className="flex flex-wrap gap-2">
+                            {DAYS_OF_WEEK.map(day => (
+                                <button
+                                    key={day}
+                                    onClick={() => handleDayToggle(day)}
+                                    className={`px-3 py-1 text-sm font-bold rounded-full transition-colors ${
+                                        days.includes(day)
+                                        ? 'bg-purple-500 text-white'
+                                        : 'bg-slate-200 text-slate-600 hover:bg-slate-300'
+                                    }`}
+                                >{day.slice(0, 3)}</button>
                             ))}
                         </div>
                     </div>
