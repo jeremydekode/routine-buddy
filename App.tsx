@@ -5,6 +5,7 @@ import { useAppContext } from './hooks/useAppContext';
 import { Mode, ActiveRoutineId } from './types';
 import { PasswordModal } from './components/PasswordModal';
 import { PASSWORD_KEY } from './hooks/useAppContext';
+import { QUESTS_THEME, PLAYTIME_THEME } from './constants';
 
 const App: React.FC = () => {
     const { state, dispatch } = useAppContext();
@@ -26,7 +27,10 @@ const App: React.FC = () => {
     const getBackgroundColor = () => {
         if (state.mode === Mode.Child) {
             if (state.activeRoutine === 'Quests') {
-                return 'bg-purple-100';
+                return QUESTS_THEME.theme.color;
+            }
+            if (state.activeRoutine === 'Playtime') {
+                return PLAYTIME_THEME.theme.color;
             }
             // Check if activeRoutine is a routine ID and safely access its properties
             if (state.activeRoutine in state.routines) {
@@ -37,7 +41,7 @@ const App: React.FC = () => {
                     return routine.theme.color;
                 }
             }
-            // Fallback for Playtime, invalid routines, or routines without themes
+            // Fallback for invalid routines or routines without themes
             return 'bg-gray-100';
         }
         return 'bg-slate-100';

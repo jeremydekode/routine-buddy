@@ -47,7 +47,7 @@ export const INITIAL_ROUTINES: Record<ActiveRoutineId, Routine> = {
         name: 'Morning Routine',
         tasks: [
             { id: '1', title: 'Make Bed', icon: '🛏️', days: WEEKDAYS },
-            { id: '2', title: 'Brush Teeth', icon: '🦷', days: DAYS_OF_WEEK },
+            { id: '2', title: 'Brush Teeth', icon: '🦷', days: [...DAYS_OF_WEEK] },
             { id: '3', title: 'Get Dressed', icon: '👕', days: WEEKDAYS },
         ],
         theme: {
@@ -60,7 +60,7 @@ export const INITIAL_ROUTINES: Record<ActiveRoutineId, Routine> = {
         name: 'After-School',
         tasks: [
             { id: '4', title: 'Tidy Up Toys', icon: '🧸', days: WEEKDAYS },
-            { id: '5', title: 'Snack Time', icon: '🍎', days: DAYS_OF_WEEK },
+            { id: '5', title: 'Snack Time', icon: '🍎', days: [...DAYS_OF_WEEK] },
         ],
         theme: {
             icon: <CloudIcon className="text-sky-500" />,
@@ -71,9 +71,9 @@ export const INITIAL_ROUTINES: Record<ActiveRoutineId, Routine> = {
         id: 'Bedtime',
         name: 'Bedtime Routine',
         tasks: [
-             { id: '6', title: 'Put on Pajamas', icon: '👚', days: DAYS_OF_WEEK },
-             { id: '7', title: 'Brush Teeth', icon: '🦷', days: DAYS_OF_WEEK },
-             { id: '8', title: 'Read a Book', icon: '📖', days: DAYS_OF_WEEK },
+             { id: '6', title: 'Put on Pajamas', icon: '👚', days: [...DAYS_OF_WEEK] },
+             { id: '7', title: 'Brush Teeth', icon: '🦷', days: [...DAYS_OF_WEEK] },
+             { id: '8', title: 'Read a Book', icon: '📖', days: [...DAYS_OF_WEEK] },
         ],
         theme: {
             icon: <MoonIcon className="text-indigo-500" />,

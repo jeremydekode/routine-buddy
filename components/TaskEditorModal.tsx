@@ -16,7 +16,7 @@ export const TaskEditorModal: React.FC<TaskEditorModalProps> = ({ isOpen, onClos
     const [description, setDescription] = useState('');
     const [icon, setIcon] = useState('🌟');
     const [duration, setDuration] = useState('');
-    const [days, setDays] = useState<Day[]>(DAYS_OF_WEEK);
+    const [days, setDays] = useState<Day[]>([...DAYS_OF_WEEK]);
 
     useEffect(() => {
         if (isOpen) {
@@ -25,14 +25,14 @@ export const TaskEditorModal: React.FC<TaskEditorModalProps> = ({ isOpen, onClos
                 setIcon(taskToEdit.icon);
                 setDescription(taskToEdit.description || '');
                 setDuration(taskToEdit.duration ? String(taskToEdit.duration) : '');
-                setDays(taskToEdit.days || DAYS_OF_WEEK);
+                setDays(taskToEdit.days || [...DAYS_OF_WEEK]);
             } else {
                 // Reset for new task
                 setTitle('');
                 setIcon('🌟');
                 setDescription('');
                 setDuration('');
-                setDays(DAYS_OF_WEEK);
+                setDays([...DAYS_OF_WEEK]);
             }
         }
     }, [taskToEdit, isOpen]);

@@ -1,45 +1,42 @@
 import React from 'react';
 
 export enum Mode {
-    Child,
-    Parent,
+    Child = 'child',
+    Parent = 'parent',
 }
 
-export type Day = 'Sunday' | 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday' | 'Saturday';
-
-export const DAYS_OF_WEEK: Day[] = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+export const DAYS_OF_WEEK = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'] as const;
+export type Day = typeof DAYS_OF_WEEK[number];
 
 export interface Task {
     id: string;
     title: string;
-    icon: string; // emoji
+    icon: string;
     days: Day[];
-    duration?: number; // Optional: duration in seconds for timed tasks
     description?: string;
+    duration?: number; // in seconds
 }
 
-export interface RoutineTheme {
+export interface Theme {
     icon: React.ReactNode;
     color: string;
 }
-
-export type ActiveRoutineId = 'Morning' | 'After-School' | 'Bedtime';
-
-export type ActiveViewId = ActiveRoutineId | 'Quests' | 'Playtime' | 'Character';
 
 export interface Routine {
     id: ActiveRoutineId;
     name: string;
     tasks: Task[];
-    theme: RoutineTheme;
+    theme: Theme;
 }
 
-export type QuestId = 'weekly' | 'monthly';
+export type ActiveRoutineId = 'Morning' | 'After-School' | 'Bedtime';
+export type ActiveView = ActiveRoutineId | 'Quests' | 'Playtime';
 
+export type QuestId = 'weekly' | 'monthly';
 export interface Quest {
     id: QuestId;
     name: string;
-    goal: number; // number of stars
+    goal: number;
 }
 
 export type CharacterQuestCategory = 'Patience' | 'Gratitude' | 'Kindness' | 'Responsibility';
@@ -50,76 +47,69 @@ export interface CharacterQuest {
     category: CharacterQuestCategory;
     goal: number;
     progress: number;
-    lastCompletedDate: string | null; // YYYY-MM-DD
+    lastCompletedDate: string | null;
 }
 
 export interface AiSuggestion {
     title: string;
-    category: 'Kindness' | 'Patience' | 'Gratitude' | 'Responsibility' | 'Fun';
+    category: CharacterQuestCategory | 'Fun';
 }
 
-export interface StarAdjustment {
+export interface StarAdjustmentLogItem {
     id: string;
-    date: string; // ISO string
     amount: number;
     reason: string;
+    date: string;
 }
 
-// State
+export interface PendingRoutineApproval {
+    date: string;
+    routineId: ActiveRoutineId;
+}
+
 export interface AppState {
     mode: Mode;
     routines: Record<ActiveRoutineId, Routine>;
+    activeRoutine: ActiveView;
+    selectedDate: string;
+    taskHistory: Record<string, string[]>; // date -> taskId[]
+    starCount: number;
     quests: {
         weekly: Quest;
         monthly: Quest;
     };
-    characterQuests: CharacterQuest[];
-    activeRoutine: ActiveViewId;
-    starCount: number;
-    completedRoutinesToday: ActiveRoutineId[]; // Note: This might become redundant with taskHistory
-    lastCompletionDate: string; // YYYY-MM-DD
     weeklyQuestPending: boolean;
     monthlyQuestPending: boolean;
-    starAdjustmentLog: StarAdjustment[];
+    pendingRoutineApprovals: PendingRoutineApproval[];
+    starAdjustmentLog: StarAdjustmentLogItem[];
     childName: string;
-    passwordIsSet: boolean;
-    showPasswordModal: boolean;
     playtimeDuration: number; // in minutes
     playtimeStarted: boolean;
     enablePlaytime: boolean;
     enableMorning: boolean;
     enableAfterSchool: boolean;
     enableBedtime: boolean;
+    showPasswordModal: boolean;
+    passwordIsSet: boolean;
+    characterQuests: CharacterQuest[];
     enableCharacterQuests: boolean;
-    // New properties for calendar view and history
-    selectedDate: string; // YYYY-MM-DD
-    taskHistory: Record<string, string[]>; // Key: YYYY-MM-DD, Value: array of completed task IDs
 }
 
-// Actions
 export type AppAction =
     | { type: 'TOGGLE_MODE' }
-    | { type: 'SET_ACTIVE_ROUTINE'; payload: ActiveViewId }
+    | { type: 'SET_ACTIVE_ROUTINE'; payload: ActiveView }
+    | { type: 'SET_SELECTED_DATE'; payload: string }
     | { type: 'TOGGLE_TASK_COMPLETION'; payload: { taskId: string; date: string } }
-    | { type: 'ADD_TASK'; payload: { routineId: ActiveRoutineId; task: Omit<Task, 'id'> } }
-    | { type: 'UPDATE_TASK'; payload: { routineId: ActiveRoutineId; task: Task } }
-    | { type: 'DELETE_TASK'; payload: { routineId: ActiveRoutineId; taskId: string } }
-    | { type: 'UPDATE_QUEST'; payload: { quest: Quest } }
-    | { type: 'AWARD_STAR_FOR_ROUTINE'; payload: { routineId: ActiveRoutineId } }
-    | { type: 'RESET_DAILY_STATE' }
-    | { type: 'REQUEST_QUEST_APPROVAL'; payload: { questId: QuestId } }
+    | { type: 'UPDATE_PARENT_SETTINGS'; payload: Partial<AppState> }
     | { type: 'APPROVE_QUEST'; payload: { questId: QuestId } }
     | { type: 'REJECT_QUEST'; payload: { questId: QuestId } }
+    | { type: 'REQUEST_QUEST_APPROVAL'; payload: { questId: QuestId } }
     | { type: 'ADJUST_STARS'; payload: { amount: number; reason: string } }
-    | { type: 'UPDATE_CHILD_NAME'; payload: string }
-    | { type: 'SET_PASSWORD_STATUS'; payload: boolean }
+    | { type: 'APPROVE_ROUTINE_AWARD', payload: { routineId: ActiveRoutineId, date: string } }
+    | { type: 'REJECT_ROUTINE_AWARD', payload: { routineId: ActiveRoutineId, date: string } }
+    | { type: 'START_PLAYTIME' }
     | { type: 'SHOW_PASSWORD_MODAL' }
     | { type: 'HIDE_PASSWORD_MODAL' }
-    | { type: 'UPDATE_PARENT_SETTINGS'; payload: { routines: Record<ActiveRoutineId, Routine>, quests: { weekly: Quest, monthly: Quest }, childName: string, playtimeDuration: number, enablePlaytime: boolean, enableMorning: boolean, enableAfterSchool: boolean, enableBedtime: boolean, enableCharacterQuests: boolean, characterQuests: CharacterQuest[] } }
-    | { type: 'START_PLAYTIME' }
-    | { type: 'SET_SELECTED_DATE'; payload: string }
-    | { type: 'ADD_CHARACTER_QUEST'; payload: Omit<CharacterQuest, 'id' | 'progress' | 'lastCompletedDate'> }
-    | { type: 'UPDATE_CHARACTER_QUEST'; payload: CharacterQuest }
-    | { type: 'DELETE_CHARACTER_QUEST'; payload: string }
-    | { type: 'INCREMENT_CHARACTER_QUEST'; payload: string }
-    | { type: 'HYDRATE_STATE', payload: AppState };
+    | { type: 'SET_PASSWORD_STATUS'; payload: boolean }
+    | { type: 'INCREMENT_CHARACTER_QUEST'; payload: string } // by quest id
+    | { type: 'LOAD_STATE'; payload: AppState };

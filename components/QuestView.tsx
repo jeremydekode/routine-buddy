@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useAppContext } from '../hooks/useAppContext';
 import { Quest } from '../types';
-import { StarIcon } from './icons/Icons';
+import { StarIcon, HeartIcon } from './icons/Icons';
+import { CharacterQuestView } from './CharacterQuestView';
 
 interface QuestProgressProps {
     quest: Quest;
@@ -24,28 +25,31 @@ const QuestProgress: React.FC<QuestProgressProps> = ({ quest, currentStars, isPe
     };
 
     const isMonthly = quest.id === 'monthly';
-    const starSize = isMonthly ? 'w-7 h-7' : 'w-10 h-10'; // Make stars larger and more countable for kids
-    const gridGap = isMonthly ? 'gap-1.5' : 'gap-2';
+    const starSize = isMonthly ? 'w-6 h-6' : 'w-8 h-8';
+    const gridGap = isMonthly ? 'gap-1' : 'gap-1.5';
     const gridCols = isMonthly ? 'grid-cols-10' : 'grid-cols-7';
     const starStamps = Array.from({ length: quest.goal }, (_, i) => i < currentStars);
 
     return (
-        <div className={`${colors.bg} p-4 rounded-2xl shadow-lg flex flex-col`}>
-            {/* Header */}
-            <div className="flex justify-between items-start mb-3">
-                <h3 className={`text-xl font-bold ${colors.text}`}>{quest.name}</h3>
-                {(isCompleted || isPending) && (
-                    <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold transition-colors ${
-                        isPending ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700'
-                    }`}>
-                        <StarIcon className="w-3 h-3" />
-                        <span>{isPending ? 'Pending' : 'Done!'}</span>
-                    </div>
-                )}
+        <div className={`${colors.bg} p-3 rounded-2xl shadow-lg flex flex-col`}>
+            <div className="flex justify-between items-center mb-2">
+                <div className="flex items-center gap-2">
+                    <h3 className={`text-xl font-bold ${colors.text}`}>{quest.name}</h3>
+                    {(isCompleted || isPending) && (
+                        <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold transition-colors ${
+                            isPending ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700'
+                        }`}>
+                            <StarIcon className="w-3 h-3" />
+                            <span>{isPending ? 'Pending' : 'Done!'}</span>
+                        </div>
+                    )}
+                </div>
+                <p className="text-sm font-semibold text-slate-600">
+                    {Math.min(currentStars, quest.goal)} / {quest.goal} stars
+                </p>
             </div>
 
-            {/* Star Stamps Grid */}
-            <div className={`grid ${gridCols} ${gridGap} mb-4`}>
+            <div className={`grid ${gridCols} ${gridGap} mb-3`}>
                 {starStamps.map((isFilled, index) => (
                      <div key={index} className="w-full aspect-square flex items-center justify-center">
                          <StarIcon className={`${starSize} ${isFilled ? colors.starFull : colors.starEmpty}`} />
@@ -53,10 +57,6 @@ const QuestProgress: React.FC<QuestProgressProps> = ({ quest, currentStars, isPe
                 ))}
             </div>
             
-            <p className="text-sm font-semibold text-slate-600 mb-3 text-center">
-                {Math.min(currentStars, quest.goal)} / {quest.goal} stars
-            </p>
-
             {isCompleted && (
                  <button 
                     onClick={handleClaim}
@@ -70,18 +70,15 @@ const QuestProgress: React.FC<QuestProgressProps> = ({ quest, currentStars, isPe
     );
 };
 
-export const QuestView: React.FC = () => {
+const StarQuests: React.FC = () => {
     const { state } = useAppContext();
     const { quests, starCount, weeklyQuestPending, monthlyQuestPending } = state;
-
     return (
-        <div className="space-y-6">
-            <style>
-                {`
+        <div className="space-y-4">
+             <style>{`
                 @keyframes sparkle { 0%, 100% { transform: scale(1); filter: brightness(1.2); } 50% { transform: scale(1.2); filter: brightness(1.8); } }
                 .animate-sparkle-subtle { animation: sparkle 2s ease-in-out infinite; }
-                `}
-            </style>
+            `}</style>
             <div className="text-center">
                  <p className="text-lg font-semibold text-slate-600">You have collected</p>
                  <div className="flex items-center justify-center gap-2 mt-1">
@@ -112,6 +109,58 @@ export const QuestView: React.FC = () => {
                     starFull: 'text-yellow-400'
                 }}
             />
+        </div>
+    );
+};
+
+export const QuestView: React.FC = () => {
+    const { state } = useAppContext();
+    const { enableCharacterQuests } = state;
+    const [activeQuestTab, setActiveQuestTab] = useState<'stars' | 'character'>('stars');
+
+    const TabButton: React.FC<{
+        label: string;
+        icon: React.ReactNode;
+        isActive: boolean;
+        onClick: () => void;
+    }> = ({ label, icon, isActive, onClick }) => (
+        <button
+            onClick={onClick}
+            className={`flex-1 flex items-center justify-center gap-2 py-2 px-4 rounded-lg font-bold transition-all ${
+                isActive ? 'bg-white shadow-md text-purple-600' : 'bg-transparent text-slate-600 hover:bg-white/50'
+            }`}
+        >
+            {icon}
+            {label}
+        </button>
+    );
+
+    if (!enableCharacterQuests) {
+        return <StarQuests />;
+    }
+    
+    return (
+        <div className="space-y-6">
+             <div className="flex justify-center gap-1.5 mb-4 bg-purple-200/50 p-1.5 rounded-xl max-w-sm mx-auto">
+                <TabButton
+                    label="Star Quests"
+                    icon={<StarIcon className="w-5 h-5" />}
+                    isActive={activeQuestTab === 'stars'}
+                    onClick={() => setActiveQuestTab('stars')}
+                />
+                <TabButton
+                    label="Character"
+                    icon={<HeartIcon className="w-5 h-5" />}
+                    isActive={activeQuestTab === 'character'}
+                    onClick={() => setActiveQuestTab('character')}
+                />
+            </div>
+
+            {activeQuestTab === 'stars' ? (
+                <StarQuests />
+            ) : (
+                <CharacterQuestView />
+            )}
         </div>
     );
 };

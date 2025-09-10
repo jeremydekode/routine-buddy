@@ -27,7 +27,6 @@ export const RoutineConfigurator: React.FC<RoutineConfiguratorProps> = ({ routin
         setIsEditorOpen(true);
     };
 
-    // FIX: Remove 'completed' from Omit type as it doesn't exist on Task.
     const handleSaveTask = (taskData: Omit<Task, 'id'> & { id?: string }) => {
         const newRoutines = { ...routines };
         const currentRoutine = newRoutines[selectedRoutine];
@@ -43,7 +42,6 @@ export const RoutineConfigurator: React.FC<RoutineConfiguratorProps> = ({ routin
              const newTask: Task = {
                  ...taskData,
                  id: new Date().toISOString(),
-                 // FIX: Remove 'completed' property as it doesn't exist on Task type.
                  days: taskData.days || [],
              };
              currentRoutine.tasks.push(newTask);

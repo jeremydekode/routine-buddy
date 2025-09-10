@@ -9,18 +9,24 @@ interface RoutineViewProps {
     selectedDate: string;
 }
 
-const CompletedStamp: React.FC = () => (
+const CompletedStamp: React.FC<{ isPending: boolean }> = ({ isPending }) => (
     <div className="absolute inset-0 bg-white/50 backdrop-blur-sm flex items-center justify-center rounded-2xl z-10 pointer-events-none">
-        <div className="transform -rotate-12 border-4 border-green-400 rounded-lg p-4 text-center">
-            <h3 className="text-4xl font-black text-green-500 uppercase tracking-wider">Completed!</h3>
-            <StarIcon className="w-10 h-10 text-yellow-400 mx-auto mt-2" />
+        <div className={`transform -rotate-12 border-4 ${isPending ? 'border-amber-400' : 'border-green-400'} rounded-lg p-4 text-center`}>
+            <h3 className={`text-4xl font-black ${isPending ? 'text-amber-500' : 'text-green-500'} uppercase tracking-wider`}>
+                {isPending ? 'For Review' : 'Completed!'}
+            </h3>
+            {isPending ? (
+                 <p className="text-sm font-bold text-amber-600 mt-2">Waiting for parent approval</p>
+            ) : (
+                <StarIcon className="w-10 h-10 text-yellow-400 mx-auto mt-2" />
+            )}
         </div>
     </div>
 );
 
 export const RoutineView: React.FC<RoutineViewProps> = ({ routine, selectedDate }) => {
     const { state } = useAppContext();
-    const { taskHistory } = state;
+    const { taskHistory, pendingRoutineApprovals } = state;
     const selectedDay = useMemo(() => DAYS_OF_WEEK[new Date(selectedDate).getUTCDay()], [selectedDate]);
     
     if (!routine) return null;
@@ -33,6 +39,10 @@ export const RoutineView: React.FC<RoutineViewProps> = ({ routine, selectedDate 
         return tasksForSelectedDay.every(task => completedTasks.includes(task.id));
     }, [tasksForSelectedDay, taskHistory, selectedDate]);
 
+    const isPending = useMemo(() => {
+        return pendingRoutineApprovals.some(p => p.routineId === routine.id && p.date === selectedDate);
+    }, [pendingRoutineApprovals, routine.id, selectedDate]);
+
 
     if (tasksForSelectedDay.length === 0) {
         return (
@@ -44,7 +54,7 @@ export const RoutineView: React.FC<RoutineViewProps> = ({ routine, selectedDate 
 
     return (
         <div className="relative">
-            {isCompleted && <CompletedStamp />}
+            {isCompleted && <CompletedStamp isPending={isPending} />}
             <div className={`space-y-4 ${isCompleted ? 'opacity-70' : ''}`}>
                 {tasksForSelectedDay.map(task => (
                     <TaskCard key={task.id} task={task} routineId={routine.id} selectedDate={selectedDate} />
