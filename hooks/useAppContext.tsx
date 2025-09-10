@@ -340,37 +340,7 @@ useEffect(() => {
     }
   });
 
-  unsub = supabase.auth.onAuthStateChange((_e, s) => {
-    if (s) {
-      loadCloudState()
-        .then(cloud => {
-          if (!cloud) return;
-          dispatch({
-            type: 'UPDATE_PARENT_SETTINGS',
-            payload: {
-              routines: cloud.routines ?? state.routines,
-              quests: cloud.quests ?? state.quests,
-              childName: cloud.childName ?? state.childName,
-            }
-          });
-          if (typeof cloud.starCount === 'number') {
-            dispatch({ type: 'SET_STAR_COUNT', payload: cloud.starCount });
-          }
-          if (Array.isArray(cloud.completedRoutinesToday)) {
-            dispatch({ type: 'SET_COMPLETED_ROUTINES_TODAY', payload: cloud.completedRoutinesToday });
-          }
-          if (typeof cloud.weeklyQuestPending === 'boolean') {
-            dispatch({ type: 'SET_WEEKLY_QUEST_PENDING', payload: cloud.weeklyQuestPending });
-          }
-          if (typeof cloud.monthlyQuestPending === 'boolean') {
-            dispatch({ type: 'SET_MONTHLY_QUEST_PENDING', payload: cloud.monthlyQuestPending });
-          }
-        })
-        .catch(console.error);
-    }
-  });
-
-  return () => { unsub?.subscription.unsubscribe(); };
+  
   // eslint-disable-next-line react-hooks/exhaustive-deps
 }, []);
 // Select only the pieces you want to sync (exclude PIN)
