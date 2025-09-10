@@ -1,8 +1,3 @@
-// ADD
-import { loadCloudState, saveCloudState } from '../services/cloudSync';
-import { supabase } from '../lib/supabaseClient';
-import { useRef } from 'react';
-
 import React, { createContext, useContext, useReducer, Dispatch, useEffect } from 'react';
 import { Mode, Routine, ActiveRoutineId, Task, Day, Quest, ActiveViewId, AppState, AppAction, QuestId } from '../types';
 import { INITIAL_ROUTINES, INITIAL_QUESTS } from '../constants';
@@ -294,7 +289,6 @@ const AppContext = createContext<{ state: AppState; dispatch: Dispatch<AppAction
 // Provider
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [state, dispatch] = useReducer(appReducer, getInitialState());
-
 
     useEffect(() => {
         const today = new Date().toISOString().split('T')[0];
