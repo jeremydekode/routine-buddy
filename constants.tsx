@@ -1,6 +1,6 @@
 import React from 'react';
-import { SunIcon, CloudIcon, MoonIcon, StarIcon, GamepadIcon } from './components/icons/Icons';
-import { Routine, ActiveRoutineId, Quest, DAYS_OF_WEEK, Day } from './types';
+import { SunIcon, CloudIcon, MoonIcon, StarIcon, GamepadIcon, HeartIcon, KindnessIcon, HourglassIcon, ResponsibilityIcon } from './components/icons/Icons';
+import { Routine, ActiveRoutineId, Quest, DAYS_OF_WEEK, Day, CharacterQuestCategory } from './types';
 
 export const QUESTS_THEME = {
     id: 'Quests',
@@ -19,6 +19,25 @@ export const PLAYTIME_THEME = {
         color: 'bg-teal-100',
     },
 } as const;
+
+export const CHARACTER_QUESTS_THEME = {
+    id: 'Character',
+    name: 'Character',
+    theme: {
+        icon: <HeartIcon className="text-pink-500" />,
+        color: 'bg-pink-100',
+    },
+} as const;
+
+export const CHARACTER_QUEST_CATEGORIES: CharacterQuestCategory[] = ['Patience', 'Gratitude', 'Kindness', 'Responsibility'];
+
+export const CATEGORY_ICONS: Record<CharacterQuestCategory, React.ReactNode> = {
+    Patience: <HourglassIcon className="w-full h-full text-sky-500" />,
+    Gratitude: <KindnessIcon className="w-full h-full text-amber-500" />, // Using Kindness icon for Gratitude visually
+    Kindness: <KindnessIcon className="w-full h-full text-pink-500" />,
+    Responsibility: <ResponsibilityIcon className="w-full h-full text-green-500" />,
+};
+
 
 const WEEKDAYS: Day[] = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
 

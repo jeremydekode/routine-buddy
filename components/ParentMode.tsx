@@ -4,8 +4,9 @@ import { AiSuggestions } from './AiSuggestions';
 import { RoutineConfigurator } from './RoutineConfigurator';
 import { QuestConfigurator } from './QuestConfigurator';
 import { ProfileConfigurator } from './ProfileConfigurator';
+import { CharacterQuestConfigurator } from './CharacterQuestConfigurator';
 import { useAppContext } from '../hooks/useAppContext';
-import { ActiveRoutineId, Quest, Routine } from '../types';
+import { ActiveRoutineId, Quest, Routine, CharacterQuest } from '../types';
 
 interface DraftState {
     routines: Record<ActiveRoutineId, Routine>;
@@ -16,16 +17,17 @@ interface DraftState {
     enableMorning: boolean;
     enableAfterSchool: boolean;
     enableBedtime: boolean;
+    enableCharacterQuests: boolean;
+    characterQuests: CharacterQuest[];
 }
 
-// FIX: Define the ParentTab type for the different parent mode views.
-type ParentTab = 'Dashboard' | 'AI Suggestions' | 'Routines' | 'Quests' | 'Profile';
+type ParentTab = 'Dashboard' | 'AI Suggestions' | 'Routines' | 'Quests' | 'Character' | 'Profile';
 
 export const ParentMode: React.FC = () => {
     const { state, dispatch } = useAppContext();
     const [activeTab, setActiveTab] = useState<ParentTab>('Dashboard');
 
-    const [draftState, setDraftState] = useState<DraftState>({
+    const [draftState, setDraftState] = useState<DraftState>(() => ({
         routines: state.routines,
         quests: state.quests,
         childName: state.childName,
@@ -34,9 +36,14 @@ export const ParentMode: React.FC = () => {
         enableMorning: state.enableMorning,
         enableAfterSchool: state.enableAfterSchool,
         enableBedtime: state.enableBedtime,
-    });
+        enableCharacterQuests: state.enableCharacterQuests,
+        characterQuests: state.characterQuests,
+    }));
     const [isDirty, setIsDirty] = useState(false);
 
+    // This effect synchronizes the local draft state with the global state.
+    // It runs when the global state changes (e.g., after a save) or when the user discards changes.
+    // The `!isDirty` check is crucial to prevent overwriting the user's edits while they are typing.
     useEffect(() => {
         if (!isDirty) {
             setDraftState({
@@ -48,56 +55,25 @@ export const ParentMode: React.FC = () => {
                 enableMorning: state.enableMorning,
                 enableAfterSchool: state.enableAfterSchool,
                 enableBedtime: state.enableBedtime,
+                enableCharacterQuests: state.enableCharacterQuests,
+                characterQuests: state.characterQuests,
             });
         }
-    }, [
-        state.routines, state.quests, state.childName, state.playtimeDuration, 
-        state.enablePlaytime, state.enableMorning, state.enableAfterSchool, state.enableBedtime, 
-        isDirty
-    ]);
-    
-    useEffect(() => {
-        const getSerializableState = (data: any) => {
-            const serializableRoutines = Object.fromEntries(
-                Object.entries(data.routines).map(([routineId, routine]: [string, any]) => {
-                    const { theme, ...rest } = routine;
-                    return [routineId, rest];
-                })
-            );
-            return {
-                routines: serializableRoutines,
-                quests: data.quests,
-                childName: data.childName,
-                playtimeDuration: data.playtimeDuration,
-                enablePlaytime: data.enablePlaytime,
-                enableMorning: data.enableMorning,
-                enableAfterSchool: data.enableAfterSchool,
-                enableBedtime: data.enableBedtime,
-            };
-        };
-    
-        const original = JSON.stringify(getSerializableState(state));
-        const draft = JSON.stringify(getSerializableState(draftState));
-    
-        setIsDirty(original !== draft);
-    }, [draftState, state]);
+    }, [state, isDirty]);
 
+    // A single wrapper function to update the draft and mark the form as dirty.
+    const setDraftAndMarkDirty = (updater: React.SetStateAction<DraftState>) => {
+        setDraftState(updater);
+        setIsDirty(true);
+    };
 
     const handleSave = () => {
         dispatch({ type: 'UPDATE_PARENT_SETTINGS', payload: draftState });
+        setIsDirty(false); // Mark as clean. The useEffect will then re-sync the draft from the new global state.
     };
 
     const handleDiscard = () => {
-        setDraftState({
-            routines: state.routines,
-            quests: state.quests,
-            childName: state.childName,
-            playtimeDuration: state.playtimeDuration,
-            enablePlaytime: state.enablePlaytime,
-            enableMorning: state.enableMorning,
-            enableAfterSchool: state.enableAfterSchool,
-            enableBedtime: state.enableBedtime,
-        });
+        setIsDirty(false); // Mark as clean. The useEffect will re-sync the draft from the original global state.
     };
 
     const TabButton: React.FC<{ tabName: ParentTab; icon: string; }> = ({ tabName, icon }) => (
@@ -119,30 +95,34 @@ export const ParentMode: React.FC = () => {
             
             <div className="bg-white rounded-xl shadow-md p-2 flex gap-1 sm:gap-2 mb-6 flex-wrap">
                 <TabButton tabName="Dashboard" icon="fa-chart-pie" />
-                <TabButton tabName="AI Suggestions" icon="fa-wand-magic-sparkles" />
                 <TabButton tabName="Routines" icon="fa-list-check" />
                 <TabButton tabName="Quests" icon="fa-star" />
+                <TabButton tabName="Character" icon="fa-heart" />
+                <TabButton tabName="AI Suggestions" icon="fa-wand-magic-sparkles" />
                 <TabButton tabName="Profile" icon="fa-user-cog" />
             </div>
 
             <main className="bg-white p-6 rounded-2xl shadow-lg min-h-[400px]">
                 {activeTab === 'Dashboard' && <ParentDashboard />}
                 {activeTab === 'AI Suggestions' && <AiSuggestions />}
-                {activeTab === 'Routines' && <RoutineConfigurator routines={draftState.routines} onRoutinesChange={(newRoutines) => setDraftState(s => ({ ...s, routines: newRoutines }))} />}
-                {activeTab === 'Quests' && <QuestConfigurator quests={draftState.quests} onQuestsChange={(newQuests) => setDraftState(s => ({ ...s, quests: newQuests }))} />}
+                {activeTab === 'Routines' && <RoutineConfigurator routines={draftState.routines} onRoutinesChange={(newRoutines) => setDraftAndMarkDirty(s => ({ ...s, routines: newRoutines }))} />}
+                {activeTab === 'Quests' && <QuestConfigurator quests={draftState.quests} onQuestsChange={(newQuests) => setDraftAndMarkDirty(s => ({ ...s, quests: newQuests }))} />}
+                {activeTab === 'Character' && <CharacterQuestConfigurator quests={draftState.characterQuests} onQuestsChange={(newQuests) => setDraftAndMarkDirty(s => ({...s, characterQuests: newQuests}))} />}
                 {activeTab === 'Profile' && <ProfileConfigurator 
                     childName={draftState.childName} 
-                    onChildNameChange={(newName) => setDraftState(s => ({ ...s, childName: newName }))}
+                    onChildNameChange={(newName) => setDraftAndMarkDirty(s => ({ ...s, childName: newName }))}
                     playtimeDuration={draftState.playtimeDuration}
-                    onPlaytimeDurationChange={(newDuration) => setDraftState(s => ({...s, playtimeDuration: newDuration}))}
+                    onPlaytimeDurationChange={(newDuration) => setDraftAndMarkDirty(s => ({...s, playtimeDuration: newDuration}))}
                     enablePlaytime={draftState.enablePlaytime}
-                    onEnablePlaytimeChange={(isEnabled) => setDraftState(s => ({...s, enablePlaytime: isEnabled}))}
+                    onEnablePlaytimeChange={(isEnabled) => setDraftAndMarkDirty(s => ({...s, enablePlaytime: isEnabled}))}
                     enableMorning={draftState.enableMorning}
-                    onEnableMorningChange={(isEnabled) => setDraftState(s => ({...s, enableMorning: isEnabled}))}
+                    onEnableMorningChange={(isEnabled) => setDraftAndMarkDirty(s => ({...s, enableMorning: isEnabled}))}
                     enableAfterSchool={draftState.enableAfterSchool}
-                    onEnableAfterSchoolChange={(isEnabled) => setDraftState(s => ({...s, enableAfterSchool: isEnabled}))}
+                    onEnableAfterSchoolChange={(isEnabled) => setDraftAndMarkDirty(s => ({...s, enableAfterSchool: isEnabled}))}
                     enableBedtime={draftState.enableBedtime}
-                    onEnableBedtimeChange={(isEnabled) => setDraftState(s => ({...s, enableBedtime: isEnabled}))}
+                    onEnableBedtimeChange={(isEnabled) => setDraftAndMarkDirty(s => ({...s, enableBedtime: isEnabled}))}
+                    enableCharacterQuests={draftState.enableCharacterQuests}
+                    onEnableCharacterQuestsChange={(isEnabled) => setDraftAndMarkDirty(s => ({...s, enableCharacterQuests: isEnabled}))}
                 />}
             </main>
              {isDirty && (

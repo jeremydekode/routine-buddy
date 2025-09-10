@@ -16,6 +16,8 @@ interface ProfileConfiguratorProps {
     onEnableAfterSchoolChange: (enabled: boolean) => void;
     enableBedtime: boolean;
     onEnableBedtimeChange: (enabled: boolean) => void;
+    enableCharacterQuests: boolean;
+    onEnableCharacterQuestsChange: (enabled: boolean) => void;
 }
 
 export const ProfileConfigurator: React.FC<ProfileConfiguratorProps> = ({ 
@@ -24,7 +26,8 @@ export const ProfileConfigurator: React.FC<ProfileConfiguratorProps> = ({
     enablePlaytime, onEnablePlaytimeChange,
     enableMorning, onEnableMorningChange,
     enableAfterSchool, onEnableAfterSchoolChange,
-    enableBedtime, onEnableBedtimeChange
+    enableBedtime, onEnableBedtimeChange,
+    enableCharacterQuests, onEnableCharacterQuestsChange
 }) => {
     const { state, dispatch } = useAppContext();
     const [isPinModalOpen, setIsPinModalOpen] = useState(false);
@@ -117,6 +120,19 @@ export const ProfileConfigurator: React.FC<ProfileConfiguratorProps> = ({
                                 <p className="text-xs text-slate-400 mt-1">Set how long the timer should run.</p>
                             </div>
                         )}
+                    </div>
+                </div>
+
+                 {/* Character Quest Section */}
+                <div>
+                    <h3 className="text-lg font-semibold text-slate-600 mb-3">Character Quest Settings</h3>
+                    <div className="bg-slate-50 p-4 rounded-xl space-y-4">
+                        <ToggleSwitch
+                            label="Enable Character Quests"
+                            checked={enableCharacterQuests}
+                            onChange={onEnableCharacterQuestsChange}
+                            description="Set goals for virtues like kindness and patience."
+                        />
                     </div>
                 </div>
 

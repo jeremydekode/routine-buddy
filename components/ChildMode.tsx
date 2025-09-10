@@ -3,9 +3,10 @@ import { useAppContext } from '../hooks/useAppContext';
 import { RoutineView } from './RoutineView';
 import { QuestView } from './QuestView';
 import { PlaytimeView } from './PlaytimeView';
+import { CharacterQuestView } from './CharacterQuestView';
 import { CalendarView } from './CalendarView';
 import { Routine, DAYS_OF_WEEK, ActiveViewId, ActiveRoutineId, Task, Day } from '../types';
-import { QUESTS_THEME, PLAYTIME_THEME } from '../constants';
+import { QUESTS_THEME, PLAYTIME_THEME, CHARACTER_QUESTS_THEME } from '../constants';
 import { StarIcon, CalendarIcon } from './icons/Icons';
 import { ThemedProgressBar } from './ThemedProgressBar';
 
@@ -73,7 +74,8 @@ export const ChildMode: React.FC = () => {
         enablePlaytime,
         enableMorning,
         enableAfterSchool,
-        enableBedtime 
+        enableBedtime,
+        enableCharacterQuests
     } = state;
     const [showStarAnimation, setShowStarAnimation] = useState(false);
     const [isCalendarOpen, setIsCalendarOpen] = useState(false);
@@ -106,19 +108,19 @@ export const ChildMode: React.FC = () => {
     
     useEffect(() => {
         const isValidRoutineForDay = routinesForSelectedDay.some(r => r.id === activeRoutine);
-        const isSpecialView = activeRoutine === 'Quests' || activeRoutine === 'Playtime';
+        let isSpecialView = ['Quests', 'Playtime'].includes(activeRoutine);
+        if (enableCharacterQuests) {
+            isSpecialView = isSpecialView || activeRoutine === 'Character';
+        }
     
-        // If the current active view is not a valid routine for the selected day,
-        // and it's not one of the special views, then we need to select a default view.
         if (!isValidRoutineForDay && !isSpecialView) {
             if (routinesForSelectedDay.length > 0) {
                 dispatch({ type: 'SET_ACTIVE_ROUTINE', payload: routinesForSelectedDay[0].id });
             } else {
-                // If no routines for the day, default to Quests.
                 dispatch({ type: 'SET_ACTIVE_ROUTINE', payload: 'Quests' });
             }
         }
-    }, [routinesForSelectedDay, activeRoutine, dispatch]);
+    }, [routinesForSelectedDay, activeRoutine, dispatch, enableCharacterQuests]);
 
     const isBedtimeCompleteToday = useMemo(() => {
         const today = new Date().toISOString().split('T')[0];
@@ -138,7 +140,7 @@ export const ChildMode: React.FC = () => {
         });
     }, [routines, taskHistory, completedRoutinesToday, dispatch]);
     
-    const currentRoutineForDisplay = activeRoutine !== 'Quests' && activeRoutine !== 'Playtime' ? routines[activeRoutine] : undefined;
+    const currentRoutineForDisplay = !['Quests', 'Playtime', 'Character'].includes(activeRoutine) ? routines[activeRoutine as ActiveRoutineId] : undefined;
     
     const progress = useMemo(() => {
         if (!currentRoutineForDisplay) return 0;
@@ -148,12 +150,6 @@ export const ChildMode: React.FC = () => {
         const completedCount = routineTasksForDay.filter(t => completedTasksOnDate.includes(t.id)).length;
         return (completedCount / routineTasksForDay.length) * 100;
     }, [currentRoutineForDisplay, selectedDay, selectedDate, taskHistory]);
-
-    const displayTheme = useMemo(() => {
-        if (activeRoutine === 'Quests') return QUESTS_THEME;
-        if (activeRoutine === 'Playtime') return PLAYTIME_THEME;
-        return currentRoutineForDisplay ? currentRoutineForDisplay : QUESTS_THEME;
-    }, [activeRoutine, currentRoutineForDisplay]);
     
     const renderContent = () => {
         switch (activeRoutine) {
@@ -161,19 +157,24 @@ export const ChildMode: React.FC = () => {
                 return <QuestView />;
             case 'Playtime':
                 return <PlaytimeView />;
+            case 'Character':
+                return <CharacterQuestView />;
             default:
                 return currentRoutineForDisplay ? <RoutineView key={currentRoutineForDisplay.id} routine={currentRoutineForDisplay} selectedDate={selectedDate} /> : <QuestView />;
         }
     };
     
     const navItems = useMemo(() => {
-        const items: (Routine | typeof QUESTS_THEME | typeof PLAYTIME_THEME)[] = [...routinesForSelectedDay];
+        const items: (Routine | typeof QUESTS_THEME | typeof PLAYTIME_THEME | typeof CHARACTER_QUESTS_THEME)[] = [...routinesForSelectedDay];
         items.push(QUESTS_THEME);
+        if (enableCharacterQuests) {
+            items.push(CHARACTER_QUESTS_THEME);
+        }
         if (isBedtimeCompleteToday && enablePlaytime) {
             items.push(PLAYTIME_THEME);
         }
         return items;
-    }, [routinesForSelectedDay, isBedtimeCompleteToday, enablePlaytime]);
+    }, [routinesForSelectedDay, isBedtimeCompleteToday, enablePlaytime, enableCharacterQuests]);
 
     return (
         <div className="relative pt-4 pb-24">

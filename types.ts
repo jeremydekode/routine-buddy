@@ -25,7 +25,7 @@ export interface RoutineTheme {
 
 export type ActiveRoutineId = 'Morning' | 'After-School' | 'Bedtime';
 
-export type ActiveViewId = ActiveRoutineId | 'Quests' | 'Playtime';
+export type ActiveViewId = ActiveRoutineId | 'Quests' | 'Playtime' | 'Character';
 
 export interface Routine {
     id: ActiveRoutineId;
@@ -40,6 +40,17 @@ export interface Quest {
     id: QuestId;
     name: string;
     goal: number; // number of stars
+}
+
+export type CharacterQuestCategory = 'Patience' | 'Gratitude' | 'Kindness' | 'Responsibility';
+
+export interface CharacterQuest {
+    id: string;
+    title: string;
+    category: CharacterQuestCategory;
+    goal: number;
+    progress: number;
+    lastCompletedDate: string | null; // YYYY-MM-DD
 }
 
 export interface AiSuggestion {
@@ -62,6 +73,7 @@ export interface AppState {
         weekly: Quest;
         monthly: Quest;
     };
+    characterQuests: CharacterQuest[];
     activeRoutine: ActiveViewId;
     starCount: number;
     completedRoutinesToday: ActiveRoutineId[]; // Note: This might become redundant with taskHistory
@@ -78,6 +90,7 @@ export interface AppState {
     enableMorning: boolean;
     enableAfterSchool: boolean;
     enableBedtime: boolean;
+    enableCharacterQuests: boolean;
     // New properties for calendar view and history
     selectedDate: string; // YYYY-MM-DD
     taskHistory: Record<string, string[]>; // Key: YYYY-MM-DD, Value: array of completed task IDs
@@ -102,7 +115,11 @@ export type AppAction =
     | { type: 'SET_PASSWORD_STATUS'; payload: boolean }
     | { type: 'SHOW_PASSWORD_MODAL' }
     | { type: 'HIDE_PASSWORD_MODAL' }
-    | { type: 'UPDATE_PARENT_SETTINGS'; payload: { routines: Record<ActiveRoutineId, Routine>, quests: { weekly: Quest, monthly: Quest }, childName: string, playtimeDuration: number, enablePlaytime: boolean, enableMorning: boolean, enableAfterSchool: boolean, enableBedtime: boolean } }
+    | { type: 'UPDATE_PARENT_SETTINGS'; payload: { routines: Record<ActiveRoutineId, Routine>, quests: { weekly: Quest, monthly: Quest }, childName: string, playtimeDuration: number, enablePlaytime: boolean, enableMorning: boolean, enableAfterSchool: boolean, enableBedtime: boolean, enableCharacterQuests: boolean, characterQuests: CharacterQuest[] } }
     | { type: 'START_PLAYTIME' }
     | { type: 'SET_SELECTED_DATE'; payload: string }
+    | { type: 'ADD_CHARACTER_QUEST'; payload: Omit<CharacterQuest, 'id' | 'progress' | 'lastCompletedDate'> }
+    | { type: 'UPDATE_CHARACTER_QUEST'; payload: CharacterQuest }
+    | { type: 'DELETE_CHARACTER_QUEST'; payload: string }
+    | { type: 'INCREMENT_CHARACTER_QUEST'; payload: string }
     | { type: 'HYDRATE_STATE', payload: AppState };

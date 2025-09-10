@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useReducer, Dispatch, useEffect, useState } from 'react';
-import { Mode, Routine, ActiveRoutineId, Task, Day, Quest, ActiveViewId, AppState, AppAction, QuestId } from '../types';
+import { Mode, Routine, ActiveRoutineId, Task, Day, Quest, ActiveViewId, AppState, AppAction, QuestId, CharacterQuest } from '../types';
 import { INITIAL_ROUTINES, INITIAL_QUESTS } from '../constants';
 import { supabase } from '../services/supabase';
 
@@ -164,12 +164,52 @@ const appReducer = (state: AppState, action: AppAction): AppState => {
                 enableMorning: action.payload.enableMorning,
                 enableAfterSchool: action.payload.enableAfterSchool,
                 enableBedtime: action.payload.enableBedtime,
+                enableCharacterQuests: action.payload.enableCharacterQuests,
+                characterQuests: action.payload.characterQuests,
             };
             saveState(newState);
             return newState;
         }
         case 'START_PLAYTIME': {
             newState = { ...state, playtimeStarted: true };
+            saveState(newState);
+            return newState;
+        }
+        case 'ADD_CHARACTER_QUEST': {
+            const newQuest: CharacterQuest = {
+                ...action.payload,
+                id: new Date().toISOString(),
+                progress: 0,
+                lastCompletedDate: null,
+            };
+            return { ...state, characterQuests: [...state.characterQuests, newQuest] };
+        }
+        case 'UPDATE_CHARACTER_QUEST': {
+            const questIndex = state.characterQuests.findIndex(q => q.id === action.payload.id);
+            if (questIndex === -1) return state;
+            const newQuests = [...state.characterQuests];
+            newQuests[questIndex] = action.payload;
+            return { ...state, characterQuests: newQuests };
+        }
+        case 'DELETE_CHARACTER_QUEST': {
+            return { ...state, characterQuests: state.characterQuests.filter(q => q.id !== action.payload) };
+        }
+        case 'INCREMENT_CHARACTER_QUEST': {
+            const today = new Date().toISOString().split('T')[0];
+            const questIndex = state.characterQuests.findIndex(q => q.id === action.payload);
+            if (questIndex === -1) return state;
+
+            const quest = state.characterQuests[questIndex];
+            // Prevent incrementing if already completed today
+            if (quest.lastCompletedDate === today) return state;
+
+            const newQuests = [...state.characterQuests];
+            newQuests[questIndex] = {
+                ...quest,
+                progress: quest.progress + 1,
+                lastCompletedDate: today,
+            };
+            newState = { ...state, characterQuests: newQuests };
             saveState(newState);
             return newState;
         }
@@ -185,18 +225,33 @@ const SUPABASE_STATE_ID = 1;
 const rehydrateState = (loadedState: any): AppState => {
     const today = new Date().toISOString().split('T')[0];
 
+    // --- Data Migration & Validation ---
+    
     // 1. Make routines safe by adding themes and handling corruption.
     if (loadedState.routines && typeof loadedState.routines === 'object') {
         for (const key in loadedState.routines) {
             const routineId = key as ActiveRoutineId;
-            // Add back theme only if routine exists in constants and in the loaded state.
-            if (INITIAL_ROUTINES[routineId] && loadedState.routines[routineId]) {
-                loadedState.routines[routineId].theme = INITIAL_ROUTINES[routineId].theme;
+            const routine = loadedState.routines[routineId];
+            
+            // Add back theme if missing
+            if (INITIAL_ROUTINES[routineId] && routine) {
+                routine.theme = INITIAL_ROUTINES[routineId].theme;
+
+                // **MIGRATION LOGIC:** Move `days` from routine to tasks if it exists at the old location.
+                if (routine.days && Array.isArray(routine.days)) {
+                    if (routine.tasks && Array.isArray(routine.tasks)) {
+                        routine.tasks.forEach((task: any) => {
+                            if (!task.days) { // Only apply if task doesn't have its own days
+                                task.days = routine.days;
+                            }
+                        });
+                    }
+                    delete routine.days; // Clean up old property
+                }
             }
         }
     } else {
-        // If routines are missing or corrupt, reset to defaults.
-        loadedState.routines = INITIAL_ROUTINES;
+        loadedState.routines = INITIAL_ROUTINES; // Reset if corrupt
     }
 
     // 2. Set defaults for any potentially missing properties.
@@ -208,18 +263,26 @@ const rehydrateState = (loadedState: any): AppState => {
     loadedState.enableMorning = loadedState.enableMorning ?? true;
     loadedState.enableAfterSchool = loadedState.enableAfterSchool ?? true;
     loadedState.enableBedtime = loadedState.enableBedtime ?? true;
+    loadedState.enableCharacterQuests = loadedState.enableCharacterQuests ?? true;
     loadedState.selectedDate = today; // Always start on today's date
     loadedState.taskHistory = loadedState.taskHistory || {};
+    loadedState.characterQuests = loadedState.characterQuests || []; // Initialize new feature
 
     // 3. Validate the active routine to prevent crashes.
     const active = loadedState.activeRoutine as ActiveViewId;
-    const isValidRoutine = active && loadedState.routines[active as ActiveRoutineId];
-    if (!isValidRoutine && active !== 'Quests' && active !== 'Playtime') {
-        const routineOrder: ActiveRoutineId[] = ['Morning', 'After-School', 'Bedtime'];
-        const firstEnabled = routineOrder.find(id => loadedState.routines[id]);
-        loadedState.activeRoutine = firstEnabled || 'Quests';
+    const routineOrder: ActiveRoutineId[] = ['Morning', 'After-School', 'Bedtime'];
+    const enabledRoutines = routineOrder.filter(id => {
+      if (id === 'Morning') return loadedState.enableMorning;
+      if (id === 'After-School') return loadedState.enableAfterSchool;
+      if (id === 'Bedtime') return loadedState.enableBedtime;
+      return false;
+    });
+
+    const isValidRoutineId = active && enabledRoutines.includes(active as ActiveRoutineId);
+    if (!isValidRoutineId && active !== 'Quests' && active !== 'Playtime' && active !== 'Character') {
+        loadedState.activeRoutine = enabledRoutines[0] || 'Quests';
     } else if (!active) {
-        loadedState.activeRoutine = 'Morning'; // Default if none is set
+        loadedState.activeRoutine = enabledRoutines[0] || 'Morning';
     }
     
     return loadedState;
@@ -290,6 +353,7 @@ const getDefaultState = (): AppState => ({
     mode: Mode.Child,
     routines: INITIAL_ROUTINES,
     quests: INITIAL_QUESTS,
+    characterQuests: [],
     activeRoutine: 'Morning',
     starCount: 0,
     completedRoutinesToday: [],
@@ -306,6 +370,7 @@ const getDefaultState = (): AppState => ({
     enableMorning: true,
     enableAfterSchool: true,
     enableBedtime: true,
+    enableCharacterQuests: true,
     selectedDate: new Date().toISOString().split('T')[0],
     taskHistory: {},
 });
