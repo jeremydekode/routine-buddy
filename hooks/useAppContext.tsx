@@ -99,6 +99,7 @@ const appReducer = (state: AppState, action: AppAction): AppState => {
                 ...state,
                 routines: newRoutines,
                 completedRoutinesToday: [],
+                playtimeStarted: false,
                 lastCompletionDate: new Date().toISOString().split('T')[0],
             };
             saveState(newState);
@@ -164,7 +165,13 @@ const appReducer = (state: AppState, action: AppAction): AppState => {
                 routines: action.payload.routines,
                 quests: action.payload.quests,
                 childName: action.payload.childName,
+                playtimeDuration: action.payload.playtimeDuration,
             };
+            saveState(newState);
+            return newState;
+        }
+        case 'START_PLAYTIME': {
+            newState = { ...state, playtimeStarted: true };
             saveState(newState);
             return newState;
         }
@@ -186,6 +193,8 @@ const rehydrateState = (loadedState: any): AppState => {
     }
     loadedState.showPasswordModal = false;
     loadedState.passwordIsSet = !!localStorage.getItem(PASSWORD_KEY);
+    loadedState.playtimeDuration = loadedState.playtimeDuration ?? 10;
+    loadedState.playtimeStarted = loadedState.playtimeStarted ?? false;
     return loadedState;
 };
 
@@ -262,6 +271,8 @@ const getDefaultState = (): AppState => ({
     childName: 'Buddy',
     passwordIsSet: !!localStorage.getItem(PASSWORD_KEY),
     showPasswordModal: false,
+    playtimeDuration: 10,
+    playtimeStarted: false,
 });
 
 const AppContext = createContext<{ state: AppState; dispatch: Dispatch<AppAction> } | undefined>(undefined);

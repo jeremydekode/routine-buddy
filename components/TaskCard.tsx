@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAppContext } from '../hooks/useAppContext';
 import { Task, ActiveRoutineId } from '../types';
+import { SpeakerIcon } from './icons/Icons';
 
 let audioContext: AudioContext | null = null;
 const getAudioContext = (): AudioContext | null => {
@@ -127,6 +128,17 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, routineId }) => {
         }
     };
     
+    const handleSpeak = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if ('speechSynthesis' in window) {
+            const utterance = new SpeechSynthesisUtterance(task.title);
+            window.speechSynthesis.cancel(); // Cancel any current speech
+            window.speechSynthesis.speak(utterance);
+        } else {
+            console.warn("Text-to-speech is not supported in this browser.");
+        }
+    };
+
     const formatTime = (seconds: number) => {
         const mins = Math.floor(seconds / 60);
         const secs = seconds % 60;
@@ -159,9 +171,18 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, routineId }) => {
                 <span className="text-4xl" role="img" aria-label={task.title}>{task.icon}</span>
             </div>
             <div className="flex-grow">
-                <h3 className={`font-bold text-lg text-slate-700 transition-colors ${task.completed ? 'line-through text-slate-400' : ''}`}>
-                    {task.title}
-                </h3>
+                 <div className="flex items-center gap-2">
+                    <h3 className={`font-bold text-lg text-slate-700 transition-colors ${task.completed ? 'line-through text-slate-400' : ''}`}>
+                        {task.title}
+                    </h3>
+                    <button
+                        onClick={handleSpeak}
+                        className="text-slate-400 hover:text-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-300 rounded-full p-1 transition-colors"
+                        aria-label="Read task title aloud"
+                    >
+                        <SpeakerIcon className="w-5 h-5" />
+                    </button>
+                </div>
                 <p className={`text-sm text-slate-500 ${task.completed ? 'line-through' : ''}`}>
                     {task.description}
                 </p>

@@ -11,6 +11,7 @@ interface DraftState {
     routines: Record<ActiveRoutineId, Routine>;
     quests: { weekly: Quest; monthly: Quest };
     childName: string;
+    playtimeDuration: number;
 }
 
 // FIX: Define the ParentTab type for the different parent mode views.
@@ -24,6 +25,7 @@ export const ParentMode: React.FC = () => {
         routines: state.routines,
         quests: state.quests,
         childName: state.childName,
+        playtimeDuration: state.playtimeDuration,
     });
     const [isDirty, setIsDirty] = useState(false);
 
@@ -34,15 +36,16 @@ export const ParentMode: React.FC = () => {
                 routines: state.routines,
                 quests: state.quests,
                 childName: state.childName,
+                playtimeDuration: state.playtimeDuration,
             });
         }
-    }, [state.routines, state.quests, state.childName, isDirty]);
+    }, [state.routines, state.quests, state.childName, state.playtimeDuration, isDirty]);
 
     // Check for unsaved changes by comparing a serializable version of the draft to the global state
     useEffect(() => {
         // Helper to create a serializable version of the state for reliable comparison.
         // This removes non-serializable parts like React components (e.g., icons in themes).
-        const getSerializableState = (data: DraftState | { routines: Record<ActiveRoutineId, Routine>, quests: { weekly: Quest; monthly: Quest }, childName: string }) => {
+        const getSerializableState = (data: DraftState | { routines: Record<ActiveRoutineId, Routine>, quests: { weekly: Quest; monthly: Quest }, childName: string, playtimeDuration: number }) => {
             const serializableRoutines = Object.fromEntries(
                 Object.entries(data.routines).map(([routineId, routine]) => {
                     // Create a copy of the routine without the 'theme' property
@@ -54,14 +57,15 @@ export const ParentMode: React.FC = () => {
                 routines: serializableRoutines,
                 quests: data.quests,
                 childName: data.childName,
+                playtimeDuration: data.playtimeDuration,
             };
         };
     
-        const original = JSON.stringify(getSerializableState({ routines: state.routines, quests: state.quests, childName: state.childName }));
+        const original = JSON.stringify(getSerializableState({ routines: state.routines, quests: state.quests, childName: state.childName, playtimeDuration: state.playtimeDuration }));
         const draft = JSON.stringify(getSerializableState(draftState));
     
         setIsDirty(original !== draft);
-    }, [draftState, state.routines, state.quests, state.childName]);
+    }, [draftState, state.routines, state.quests, state.childName, state.playtimeDuration]);
 
 
     const handleSave = () => {
@@ -74,6 +78,7 @@ export const ParentMode: React.FC = () => {
             routines: state.routines,
             quests: state.quests,
             childName: state.childName,
+            playtimeDuration: state.playtimeDuration,
         });
     };
 
@@ -107,7 +112,12 @@ export const ParentMode: React.FC = () => {
                 {activeTab === 'AI Suggestions' && <AiSuggestions />}
                 {activeTab === 'Routines' && <RoutineConfigurator routines={draftState.routines} onRoutinesChange={(newRoutines) => setDraftState(s => ({ ...s, routines: newRoutines }))} />}
                 {activeTab === 'Quests' && <QuestConfigurator quests={draftState.quests} onQuestsChange={(newQuests) => setDraftState(s => ({ ...s, quests: newQuests }))} />}
-                {activeTab === 'Profile' && <ProfileConfigurator childName={draftState.childName} onChildNameChange={(newName) => setDraftState(s => ({ ...s, childName: newName }))} />}
+                {activeTab === 'Profile' && <ProfileConfigurator 
+                    childName={draftState.childName} 
+                    onChildNameChange={(newName) => setDraftState(s => ({ ...s, childName: newName }))}
+                    playtimeDuration={draftState.playtimeDuration}
+                    onPlaytimeDurationChange={(newDuration) => setDraftState(s => ({...s, playtimeDuration: newDuration}))}
+                />}
             </main>
              {isDirty && (
                 <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/80 backdrop-blur-sm shadow-t-lg z-30 transition-transform duration-300 animate-slide-up">

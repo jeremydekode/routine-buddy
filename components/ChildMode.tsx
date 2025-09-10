@@ -2,8 +2,9 @@ import React, { useMemo, useState, useEffect } from 'react';
 import { useAppContext } from '../hooks/useAppContext';
 import { RoutineView } from './RoutineView';
 import { QuestView } from './QuestView';
+import { PlaytimeView } from './PlaytimeView';
 import { Routine, DAYS_OF_WEEK } from '../types';
-import { QUESTS_THEME } from '../constants';
+import { QUESTS_THEME, PLAYTIME_THEME } from '../constants';
 // FIX: Import StarIcon component to resolve 'Cannot find name' error.
 import { StarIcon } from './icons/Icons';
 import { ThemedProgressBar } from './ThemedProgressBar';
@@ -70,17 +71,25 @@ export const ChildMode: React.FC = () => {
     const availableRoutines = useMemo(() => {
         return Object.values(routines).filter(r => r.days.includes(currentDay));
     }, [routines, currentDay]);
+    
+    const isBedtimeComplete = useMemo(() => {
+        const bedtimeRoutine = routines['Bedtime'];
+        return bedtimeRoutine && bedtimeRoutine.tasks.length > 0 && bedtimeRoutine.tasks.every(t => t.completed);
+    }, [routines]);
 
     useEffect(() => {
         const activeRoutineIsAvailable = availableRoutines.some(r => r.id === activeRoutine);
-        if (!activeRoutineIsAvailable && activeRoutine !== 'Quests') {
+        if (!activeRoutineIsAvailable && activeRoutine !== 'Quests' && activeRoutine !== 'Playtime') {
             if (availableRoutines.length > 0) {
                 dispatch({ type: 'SET_ACTIVE_ROUTINE', payload: availableRoutines[0].id });
             } else {
                 dispatch({ type: 'SET_ACTIVE_ROUTINE', payload: 'Quests' });
             }
         }
-    }, [activeRoutine, availableRoutines, dispatch]);
+        if (activeRoutine === 'Playtime' && !isBedtimeComplete) {
+            dispatch({ type: 'SET_ACTIVE_ROUTINE', payload: 'Quests' });
+        }
+    }, [activeRoutine, availableRoutines, dispatch, isBedtimeComplete]);
 
     useEffect(() => {
         Object.values(routines).forEach(routine => {
@@ -93,22 +102,38 @@ export const ChildMode: React.FC = () => {
         });
     }, [routines, completedRoutinesToday, dispatch]);
     
-    const currentRoutine = activeRoutine !== 'Quests' ? routines[activeRoutine] : undefined;
+    const currentRoutine = activeRoutine !== 'Quests' && activeRoutine !== 'Playtime' ? routines[activeRoutine] : undefined;
     
-    const { completedTasks, totalTasks, progress } = useMemo(() => {
-        if (!currentRoutine) return { completedTasks: 0, totalTasks: 0, progress: 0 };
+    const { progress } = useMemo(() => {
+        if (!currentRoutine) return { progress: 0 };
         const completed = currentRoutine.tasks.filter(task => task.completed).length;
         const total = currentRoutine.tasks.length;
         const progressPercentage = total > 0 ? (completed / total) * 100 : 0;
-        return { completedTasks: completed, totalTasks: total, progress: progressPercentage };
+        return { progress: progressPercentage };
     }, [currentRoutine]);
 
-    const displayTheme = activeRoutine === 'Quests' || !currentRoutine ? QUESTS_THEME : currentRoutine;
+    const displayTheme = useMemo(() => {
+        if (activeRoutine === 'Quests') return QUESTS_THEME;
+        if (activeRoutine === 'Playtime') return PLAYTIME_THEME;
+        return currentRoutine ? currentRoutine : QUESTS_THEME;
+    }, [activeRoutine, currentRoutine]);
     
     const getDisplayName = () => {
         if (displayTheme.id === 'Quests') return 'Quests';
+        if (displayTheme.id === 'Playtime') return 'Playtime!';
         const routineName = displayTheme.name.replace(' Routine', '');
         return `${childName}'s ${routineName}`;
+    };
+
+    const renderContent = () => {
+        switch (activeRoutine) {
+            case 'Quests':
+                return <QuestView />;
+            case 'Playtime':
+                return <PlaytimeView />;
+            default:
+                return currentRoutine ? <RoutineView key={currentRoutine.id} routine={currentRoutine} /> : <QuestView />;
+        }
     };
 
     return (
@@ -162,7 +187,7 @@ export const ChildMode: React.FC = () => {
                 </div>
                 <h1 className="text-4xl md:text-5xl font-bold text-slate-700 mt-4">{getDisplayName()}</h1>
                 <p className="text-slate-500">
-                    {activeRoutine === 'Quests' ? 'Check your awesome progress!' : "Let's get started!"}
+                    {activeRoutine === 'Quests' ? 'Check your awesome progress!' : activeRoutine === 'Playtime' ? 'Time for some fun!' : "Let's get started!"}
                 </p>
             </div>
             
@@ -170,11 +195,11 @@ export const ChildMode: React.FC = () => {
                  <ThemedProgressBar progress={progress} themeColorClass={currentRoutine.theme.color} />
             )}
            
-            {activeRoutine === 'Quests' || !currentRoutine ? <QuestView /> : <RoutineView key={currentRoutine.id} routine={currentRoutine} />}
+            {renderContent()}
            
             <nav className="fixed bottom-0 left-0 right-0 max-w-md md:max-w-3xl mx-auto p-2 bg-white/80 backdrop-blur-sm shadow-t-lg rounded-t-2xl">
                 <div className="flex justify-around">
-                    {[...availableRoutines, QUESTS_THEME].map((item) => {
+                    {[...availableRoutines, QUESTS_THEME, ...(isBedtimeComplete ? [PLAYTIME_THEME] : [])].map((item) => {
                         const routine = item as Routine | typeof QUESTS_THEME;
                         const isActive = activeRoutine === routine.id;
                         return (

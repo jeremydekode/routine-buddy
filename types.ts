@@ -25,7 +25,7 @@ export interface RoutineTheme {
 
 export type ActiveRoutineId = 'Morning' | 'After-School' | 'Bedtime';
 
-export type ActiveViewId = ActiveRoutineId | 'Quests';
+export type ActiveViewId = ActiveRoutineId | 'Quests' | 'Playtime';
 
 export interface Routine {
     id: ActiveRoutineId;
@@ -74,6 +74,8 @@ export interface AppState {
     childName: string;
     passwordIsSet: boolean;
     showPasswordModal: boolean;
+    playtimeDuration: number; // in minutes
+    playtimeStarted: boolean;
 }
 
 // Actions
@@ -96,5 +98,6 @@ export type AppAction =
     | { type: 'SET_PASSWORD_STATUS'; payload: boolean }
     | { type: 'SHOW_PASSWORD_MODAL' }
     | { type: 'HIDE_PASSWORD_MODAL' }
-    | { type: 'UPDATE_PARENT_SETTINGS'; payload: { routines: Record<ActiveRoutineId, Routine>, quests: { weekly: Quest, monthly: Quest }, childName: string } }
+    | { type: 'UPDATE_PARENT_SETTINGS'; payload: { routines: Record<ActiveRoutineId, Routine>, quests: { weekly: Quest, monthly: Quest }, childName: string, playtimeDuration: number } }
+    | { type: 'START_PLAYTIME' }
     | { type: 'HYDRATE_STATE', payload: AppState };

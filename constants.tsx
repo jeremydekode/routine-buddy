@@ -1,5 +1,5 @@
 import React from 'react';
-import { SunIcon, CloudIcon, MoonIcon, StarIcon } from './components/icons/Icons';
+import { SunIcon, CloudIcon, MoonIcon, StarIcon, GamepadIcon } from './components/icons/Icons';
 import { Routine, ActiveRoutineId, Quest } from './types';
 
 // FIX: Add 'as const' to give `id` the literal type 'Quests' instead of string.
@@ -9,6 +9,15 @@ export const QUESTS_THEME = {
     theme: {
         icon: <StarIcon className="text-purple-500" />,
         color: 'bg-purple-100',
+    },
+} as const;
+
+export const PLAYTIME_THEME = {
+    id: 'Playtime',
+    name: 'Playtime',
+    theme: {
+        icon: <GamepadIcon className="text-teal-500" />,
+        color: 'bg-teal-100',
     },
 } as const;
 
