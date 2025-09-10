@@ -1,3 +1,8 @@
+// ADD
+import { loadCloudState, saveCloudState } from '../services/cloudSync';
+import { supabase } from '../lib/supabaseClient';
+import { useRef } from 'react';
+
 import React, { createContext, useContext, useReducer, Dispatch, useEffect } from 'react';
 import { Mode, Routine, ActiveRoutineId, Task, Day, Quest, ActiveViewId, AppState, AppAction, QuestId } from '../types';
 import { INITIAL_ROUTINES, INITIAL_QUESTS } from '../constants';
@@ -289,6 +294,111 @@ const AppContext = createContext<{ state: AppState; dispatch: Dispatch<AppAction
 // Provider
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [state, dispatch] = useReducer(appReducer, getInitialState());
+
+    // ADD: debounce helper so we don’t spam the DB
+const saveTimer = useRef<number | null>(null);
+const debouncedSave = (payload: any, delay = 800) => {
+  if (saveTimer.current) window.clearTimeout(saveTimer.current);
+  // @ts-ignore
+  saveTimer.current = window.setTimeout(() => saveCloudState(payload).catch(console.error), delay);
+};
+// ADD: when user signs in, try loading cloud state and merge into local
+useEffect(() => {
+  let unsub: { subscription: { unsubscribe: () => void } } | null = null;
+
+  // on first render, and also on auth changes
+  supabase.auth.getSession().then(({ data }) => {
+    const session = data.session;
+    if (session) {
+      loadCloudState().then(cloud => {
+        if (!cloud) return;
+        // Merge only the parts your app uses. Keep PIN local.
+        if (cloud.routines || cloud.quests || cloud.childName) {
+          dispatch({
+            type: 'UPDATE_PARENT_SETTINGS',
+            payload: {
+              routines: cloud.routines ?? state.routines,
+              quests: cloud.quests ?? state.quests,
+              childName: cloud.childName ?? state.childName,
+            }
+          });
+        }
+        if (typeof cloud.starCount === 'number') {
+          dispatch({ type: 'SET_STAR_COUNT', payload: cloud.starCount });
+        }
+        if (Array.isArray(cloud.completedRoutinesToday)) {
+          dispatch({ type: 'SET_COMPLETED_ROUTINES_TODAY', payload: cloud.completedRoutinesToday });
+        }
+        if (typeof cloud.weeklyQuestPending === 'boolean') {
+          dispatch({ type: 'SET_WEEKLY_QUEST_PENDING', payload: cloud.weeklyQuestPending });
+        }
+        if (typeof cloud.monthlyQuestPending === 'boolean') {
+          dispatch({ type: 'SET_MONTHLY_QUEST_PENDING', payload: cloud.monthlyQuestPending });
+        }
+        // add any other fields you want restored the same way
+      }).catch(console.error);
+    }
+  });
+
+  unsub = supabase.auth.onAuthStateChange((_e, s) => {
+    if (s) {
+      loadCloudState()
+        .then(cloud => {
+          if (!cloud) return;
+          dispatch({
+            type: 'UPDATE_PARENT_SETTINGS',
+            payload: {
+              routines: cloud.routines ?? state.routines,
+              quests: cloud.quests ?? state.quests,
+              childName: cloud.childName ?? state.childName,
+            }
+          });
+          if (typeof cloud.starCount === 'number') {
+            dispatch({ type: 'SET_STAR_COUNT', payload: cloud.starCount });
+          }
+          if (Array.isArray(cloud.completedRoutinesToday)) {
+            dispatch({ type: 'SET_COMPLETED_ROUTINES_TODAY', payload: cloud.completedRoutinesToday });
+          }
+          if (typeof cloud.weeklyQuestPending === 'boolean') {
+            dispatch({ type: 'SET_WEEKLY_QUEST_PENDING', payload: cloud.weeklyQuestPending });
+          }
+          if (typeof cloud.monthlyQuestPending === 'boolean') {
+            dispatch({ type: 'SET_MONTHLY_QUEST_PENDING', payload: cloud.monthlyQuestPending });
+          }
+        })
+        .catch(console.error);
+    }
+  });
+
+  return () => { unsub?.subscription.unsubscribe(); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, []);
+// Select only the pieces you want to sync (exclude PIN)
+const syncableState = {
+  routines: state.routines,
+  quests: state.quests,
+  childName: state.childName,
+  starCount: state.starCount,
+  completedRoutinesToday: state.completedRoutinesToday,
+  weeklyQuestPending: state.weeklyQuestPending,
+  monthlyQuestPending: state.monthlyQuestPending,
+  // add more fields if you want
+};
+
+useEffect(() => {
+  // Also keep your existing localStorage save (already in your file).
+  debouncedSave(syncableState);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [
+  state.routines,
+  state.quests,
+  state.childName,
+  state.starCount,
+  state.completedRoutinesToday,
+  state.weeklyQuestPending,
+  state.monthlyQuestPending,
+]);
+
 
     useEffect(() => {
         const today = new Date().toISOString().split('T')[0];
