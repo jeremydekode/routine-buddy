@@ -9,8 +9,11 @@ interface TaskEditorModalProps {
     routineId: string;
 }
 
+const ICON_OPTIONS = ['🌟', '🧸', '🍎', '🦷', '👕', '🛏️', '📖', '👚', '👟', '🧼', '🍽️', '🎨', '🧩', '🚲', '🥕', '💧', '☀️', '🌙', '❤️', '👍', '🥦', '🛁', '🎒', '🐶'];
+
 export const TaskEditorModal: React.FC<TaskEditorModalProps> = ({ isOpen, onClose, onSave, taskToEdit, routineId }) => {
     const [title, setTitle] = useState('');
+    // FIX: Add state for the new description field.
     const [description, setDescription] = useState('');
     const [icon, setIcon] = useState('🌟');
     const [duration, setDuration] = useState('');
@@ -19,14 +22,16 @@ export const TaskEditorModal: React.FC<TaskEditorModalProps> = ({ isOpen, onClos
         if (isOpen) {
             if (taskToEdit) {
                 setTitle(taskToEdit.title);
-                setDescription(taskToEdit.description);
                 setIcon(taskToEdit.icon);
+                // FIX: Populate description from the task being edited.
+                setDescription(taskToEdit.description || '');
                 setDuration(taskToEdit.duration ? String(taskToEdit.duration) : '');
             } else {
                 // Reset for new task
                 setTitle('');
-                setDescription('');
                 setIcon('🌟');
+                // FIX: Reset description for a new task.
+                setDescription('');
                 setDuration('');
             }
         }
@@ -40,8 +45,9 @@ export const TaskEditorModal: React.FC<TaskEditorModalProps> = ({ isOpen, onClos
         onSave({
             id: taskToEdit?.id,
             title: title.trim(),
-            description: description.trim(),
-            icon: icon.trim() || '🌟',
+            // FIX: Include description in the saved task data.
+            description: description.trim() || undefined,
+            icon: icon,
             duration: duration ? parseInt(duration, 10) : undefined,
         });
         onClose();
@@ -64,25 +70,36 @@ export const TaskEditorModal: React.FC<TaskEditorModalProps> = ({ isOpen, onClos
                             className="w-full mt-1 p-2 border border-slate-300 rounded-lg"
                         />
                     </div>
+                    {/* FIX: Add an input field for the optional task description. */}
                     <div>
                         <label className="text-sm font-medium text-slate-600">Description (optional)</label>
                         <input
                             type="text"
                             value={description}
                             onChange={e => setDescription(e.target.value)}
-                            placeholder="A short description of the task"
+                            placeholder="e.g., Use the green watering can"
                             className="w-full mt-1 p-2 border border-slate-300 rounded-lg"
                         />
                     </div>
                     <div>
-                        <label className="text-sm font-medium text-slate-600">Icon (Emoji)</label>
-                        <input
-                            type="text"
-                            value={icon}
-                            onChange={e => setIcon(e.target.value)}
-                            maxLength={2}
-                            className="w-full mt-1 p-2 border border-slate-300 rounded-lg"
-                        />
+                        <label className="text-sm font-medium text-slate-600">Icon</label>
+                        <div className="mt-2 grid grid-cols-8 gap-2 bg-slate-50 p-2 rounded-lg">
+                            {ICON_OPTIONS.map((ico) => (
+                                <button
+                                    key={ico}
+                                    type="button"
+                                    onClick={() => setIcon(ico)}
+                                    className={`text-2xl rounded-lg p-2 transition-all ${
+                                        icon === ico
+                                            ? 'bg-purple-500 ring-2 ring-purple-300 ring-offset-2'
+                                            : 'bg-slate-200 hover:bg-slate-300'
+                                    }`}
+                                    aria-label={ico}
+                                >
+                                    {ico}
+                                </button>
+                            ))}
+                        </div>
                     </div>
                     {routineId === 'Bedtime' && (
                          <div>

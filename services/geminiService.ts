@@ -12,11 +12,11 @@ const ai = new GoogleGenAI({ apiKey: API_KEY! });
 export const getAiSuggestions = async (timeOfDay: 'Morning' | 'After-School' | 'Bedtime', feeling: string): Promise<AiSuggestion[]> => {
     if (!API_KEY) {
         return Promise.resolve([
-            { title: "AI Disabled", description: "Please set your API_KEY to enable suggestions.", category: 'Fun' }
+            { title: "AI Disabled", category: 'Fun' }
         ]);
     }
     
-    const prompt = `You are an expert in early childhood development. For a 4-year-old child, suggest 3 simple, age-appropriate tasks or character-building quests for their ${timeOfDay} routine. The child is feeling ${feeling}. The tasks should promote discipline, kindness, patience, gratitude, or responsibility. Provide the output in a structured JSON format.`;
+    const prompt = `You are an expert in early childhood development. For a 4-year-old child, suggest 3 simple, age-appropriate tasks or character-building quests for their ${timeOfDay} routine. The child is feeling ${feeling}. The tasks should promote discipline, kindness, patience, gratitude, or responsibility. Each task should have a title and a category. Provide the output in a structured JSON format.`;
 
     try {
         const response = await ai.models.generateContent({
@@ -33,17 +33,13 @@ export const getAiSuggestions = async (timeOfDay: 'Morning' | 'After-School' | '
                                 type: Type.STRING,
                                 description: 'A short, fun title for the task or quest.'
                             },
-                            description: {
-                                type: Type.STRING,
-                                description: 'A brief, simple explanation of the task for the parent.'
-                            },
                             category: {
                                 type: Type.STRING,
                                 enum: ['Kindness', 'Patience', 'Gratitude', 'Responsibility', 'Fun'],
                                 description: 'The character trait this task helps develop.'
                             }
                         },
-                        required: ["title", "description", "category"]
+                        required: ["title", "category"]
                     },
                 },
             },
@@ -56,7 +52,7 @@ export const getAiSuggestions = async (timeOfDay: 'Morning' | 'After-School' | '
     } catch (error) {
         console.error("Error fetching AI suggestions:", error);
         return [
-            { title: "Error", description: "Could not fetch AI suggestions at this time.", category: 'Fun' }
+            { title: "Error", category: 'Fun' }
         ];
     }
 };

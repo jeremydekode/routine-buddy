@@ -1,15 +1,18 @@
 import React, { useState } from 'react';
 import { useAppContext, PASSWORD_KEY } from '../hooks/useAppContext';
 import { PinSetupModal } from './PinSetupModal';
+import { ToggleSwitch } from './ToggleSwitch';
 
 interface ProfileConfiguratorProps {
     childName: string;
     onChildNameChange: (name: string) => void;
     playtimeDuration: number;
     onPlaytimeDurationChange: (duration: number) => void;
+    enablePlaytime: boolean;
+    onEnablePlaytimeChange: (enabled: boolean) => void;
 }
 
-export const ProfileConfigurator: React.FC<ProfileConfiguratorProps> = ({ childName, onChildNameChange, playtimeDuration, onPlaytimeDurationChange }) => {
+export const ProfileConfigurator: React.FC<ProfileConfiguratorProps> = ({ childName, onChildNameChange, playtimeDuration, onPlaytimeDurationChange, enablePlaytime, onEnablePlaytimeChange }) => {
     const { state, dispatch } = useAppContext();
     const [isPinModalOpen, setIsPinModalOpen] = useState(false);
     const [isChangingPin, setIsChangingPin] = useState(false);
@@ -57,18 +60,28 @@ export const ProfileConfigurator: React.FC<ProfileConfiguratorProps> = ({ childN
                 {/* Playtime Section */}
                 <div>
                     <h3 className="text-lg font-semibold text-slate-600 mb-3">Playtime Settings</h3>
-                    <div className="bg-slate-50 p-4 rounded-xl">
-                        <label htmlFor="playtimeDuration" className="text-sm font-medium text-slate-600">Playtime Duration (minutes)</label>
-                        <input
-                            id="playtimeDuration"
-                            type="number"
-                            value={playtimeDuration === 0 ? '' : playtimeDuration}
-                            onChange={(e) => onPlaytimeDurationChange(parseInt(e.target.value, 10) || 0)}
-                            min="1"
-                            className="w-full mt-1 p-2 border border-slate-300 rounded-lg focus:ring-purple-500 focus:border-purple-500"
-                            placeholder="e.g., 10"
+                    <div className="bg-slate-50 p-4 rounded-xl space-y-4">
+                        <ToggleSwitch
+                            label="Enable Playtime Reward"
+                            checked={enablePlaytime}
+                            onChange={onEnablePlaytimeChange}
+                            description="Unlocks a playtime timer after the Bedtime routine is complete."
                         />
-                         <p className="text-xs text-slate-400 mt-1">Set how long the playtime timer should run after the Bedtime routine.</p>
+                        {enablePlaytime && (
+                            <div>
+                                <label htmlFor="playtimeDuration" className="text-sm font-medium text-slate-600">Playtime Duration (minutes)</label>
+                                <input
+                                    id="playtimeDuration"
+                                    type="number"
+                                    value={playtimeDuration === 0 ? '' : playtimeDuration}
+                                    onChange={(e) => onPlaytimeDurationChange(parseInt(e.target.value, 10) || 0)}
+                                    min="1"
+                                    className="w-full mt-1 p-2 border border-slate-300 rounded-lg focus:ring-purple-500 focus:border-purple-500"
+                                    placeholder="e.g., 10"
+                                />
+                                <p className="text-xs text-slate-400 mt-1">Set how long the timer should run.</p>
+                            </div>
+                        )}
                     </div>
                 </div>
 

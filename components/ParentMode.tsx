@@ -12,6 +12,7 @@ interface DraftState {
     quests: { weekly: Quest; monthly: Quest };
     childName: string;
     playtimeDuration: number;
+    enablePlaytime: boolean;
 }
 
 // FIX: Define the ParentTab type for the different parent mode views.
@@ -26,6 +27,7 @@ export const ParentMode: React.FC = () => {
         quests: state.quests,
         childName: state.childName,
         playtimeDuration: state.playtimeDuration,
+        enablePlaytime: state.enablePlaytime,
     });
     const [isDirty, setIsDirty] = useState(false);
 
@@ -37,15 +39,16 @@ export const ParentMode: React.FC = () => {
                 quests: state.quests,
                 childName: state.childName,
                 playtimeDuration: state.playtimeDuration,
+                enablePlaytime: state.enablePlaytime,
             });
         }
-    }, [state.routines, state.quests, state.childName, state.playtimeDuration, isDirty]);
+    }, [state.routines, state.quests, state.childName, state.playtimeDuration, state.enablePlaytime, isDirty]);
 
     // Check for unsaved changes by comparing a serializable version of the draft to the global state
     useEffect(() => {
         // Helper to create a serializable version of the state for reliable comparison.
         // This removes non-serializable parts like React components (e.g., icons in themes).
-        const getSerializableState = (data: DraftState | { routines: Record<ActiveRoutineId, Routine>, quests: { weekly: Quest; monthly: Quest }, childName: string, playtimeDuration: number }) => {
+        const getSerializableState = (data: DraftState | { routines: Record<ActiveRoutineId, Routine>, quests: { weekly: Quest; monthly: Quest }, childName: string, playtimeDuration: number, enablePlaytime: boolean }) => {
             const serializableRoutines = Object.fromEntries(
                 Object.entries(data.routines).map(([routineId, routine]) => {
                     // Create a copy of the routine without the 'theme' property
@@ -58,14 +61,15 @@ export const ParentMode: React.FC = () => {
                 quests: data.quests,
                 childName: data.childName,
                 playtimeDuration: data.playtimeDuration,
+                enablePlaytime: data.enablePlaytime,
             };
         };
     
-        const original = JSON.stringify(getSerializableState({ routines: state.routines, quests: state.quests, childName: state.childName, playtimeDuration: state.playtimeDuration }));
+        const original = JSON.stringify(getSerializableState({ routines: state.routines, quests: state.quests, childName: state.childName, playtimeDuration: state.playtimeDuration, enablePlaytime: state.enablePlaytime }));
         const draft = JSON.stringify(getSerializableState(draftState));
     
         setIsDirty(original !== draft);
-    }, [draftState, state.routines, state.quests, state.childName, state.playtimeDuration]);
+    }, [draftState, state.routines, state.quests, state.childName, state.playtimeDuration, state.enablePlaytime]);
 
 
     const handleSave = () => {
@@ -79,6 +83,7 @@ export const ParentMode: React.FC = () => {
             quests: state.quests,
             childName: state.childName,
             playtimeDuration: state.playtimeDuration,
+            enablePlaytime: state.enablePlaytime,
         });
     };
 
@@ -117,6 +122,8 @@ export const ParentMode: React.FC = () => {
                     onChildNameChange={(newName) => setDraftState(s => ({ ...s, childName: newName }))}
                     playtimeDuration={draftState.playtimeDuration}
                     onPlaytimeDurationChange={(newDuration) => setDraftState(s => ({...s, playtimeDuration: newDuration}))}
+                    enablePlaytime={draftState.enablePlaytime}
+                    onEnablePlaytimeChange={(isEnabled) => setDraftState(s => ({...s, enablePlaytime: isEnabled}))}
                 />}
             </main>
              {isDirty && (

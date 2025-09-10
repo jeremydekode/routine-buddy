@@ -183,9 +183,6 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, routineId }) => {
                         <SpeakerIcon className="w-5 h-5" />
                     </button>
                 </div>
-                <p className={`text-sm text-slate-500 ${task.completed ? 'line-through' : ''}`}>
-                    {task.description}
-                </p>
                 {hasTimer && !task.completed && (
                      <div className="mt-2 text-sm font-semibold text-indigo-600">
                         <i className="fa-regular fa-clock mr-1"></i>

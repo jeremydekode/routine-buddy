@@ -12,10 +12,11 @@ export const DAYS_OF_WEEK: Day[] = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 
 export interface Task {
     id: string;
     title: string;
-    description: string;
     icon: string; // emoji
     completed: boolean;
     duration?: number; // Optional: duration in seconds for timed tasks
+    // FIX: Add optional 'description' property to Task to align with its usage in RoutineConfigurator.
+    description?: string;
 }
 
 export interface RoutineTheme {
@@ -45,7 +46,6 @@ export interface Quest {
 
 export interface AiSuggestion {
     title: string;
-    description: string;
     category: 'Kindness' | 'Patience' | 'Gratitude' | 'Responsibility' | 'Fun';
 }
 
@@ -76,6 +76,7 @@ export interface AppState {
     showPasswordModal: boolean;
     playtimeDuration: number; // in minutes
     playtimeStarted: boolean;
+    enablePlaytime: boolean;
 }
 
 // Actions
@@ -98,6 +99,6 @@ export type AppAction =
     | { type: 'SET_PASSWORD_STATUS'; payload: boolean }
     | { type: 'SHOW_PASSWORD_MODAL' }
     | { type: 'HIDE_PASSWORD_MODAL' }
-    | { type: 'UPDATE_PARENT_SETTINGS'; payload: { routines: Record<ActiveRoutineId, Routine>, quests: { weekly: Quest, monthly: Quest }, childName: string, playtimeDuration: number } }
+    | { type: 'UPDATE_PARENT_SETTINGS'; payload: { routines: Record<ActiveRoutineId, Routine>, quests: { weekly: Quest, monthly: Quest }, childName: string, playtimeDuration: number, enablePlaytime: boolean } }
     | { type: 'START_PLAYTIME' }
     | { type: 'HYDRATE_STATE', payload: AppState };

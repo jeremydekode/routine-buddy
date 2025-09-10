@@ -26,9 +26,9 @@ export const INITIAL_ROUTINES: Record<ActiveRoutineId, Routine> = {
         id: 'Morning',
         name: 'Morning Routine',
         tasks: [
-            { id: '1', title: 'Make Bed', description: 'Tidy up your bed.', icon: '🛏️', completed: false },
-            { id: '2', title: 'Brush Teeth', description: 'Use your toothbrush and toothpaste.', icon: '🦷', completed: false },
-            { id: '3', title: 'Get Dressed', description: 'Put on your clothes for the day.', icon: '👕', completed: false },
+            { id: '1', title: 'Make Bed', icon: '🛏️', completed: false },
+            { id: '2', title: 'Brush Teeth', icon: '🦷', completed: false },
+            { id: '3', title: 'Get Dressed', icon: '👕', completed: false },
         ],
         days: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
         theme: {
@@ -40,8 +40,8 @@ export const INITIAL_ROUTINES: Record<ActiveRoutineId, Routine> = {
         id: 'After-School',
         name: 'After-School',
         tasks: [
-            { id: '4', title: 'Tidy Up Toys', description: 'Put your toys back where they belong.', icon: '🧸', completed: false },
-            { id: '5', title: 'Snack Time', description: 'Eat a healthy snack.', icon: '🍎', completed: false },
+            { id: '4', title: 'Tidy Up Toys', icon: '🧸', completed: false },
+            { id: '5', title: 'Snack Time', icon: '🍎', completed: false },
         ],
         days: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
         theme: {
@@ -53,9 +53,9 @@ export const INITIAL_ROUTINES: Record<ActiveRoutineId, Routine> = {
         id: 'Bedtime',
         name: 'Bedtime Routine',
         tasks: [
-             { id: '6', title: 'Put on Pajamas', description: 'Change into your comfy PJs.', icon: '👚', completed: false },
-             { id: '7', title: 'Brush Teeth', description: 'Get your teeth clean for the night.', icon: '🦷', completed: false },
-             { id: '8', title: 'Read a Book', description: 'Enjoy a story before sleep.', icon: '📖', completed: false },
+             { id: '6', title: 'Put on Pajamas', icon: '👚', completed: false },
+             { id: '7', title: 'Brush Teeth', icon: '🦷', completed: false },
+             { id: '8', title: 'Read a Book', icon: '📖', completed: false },
         ],
         days: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
         theme: {

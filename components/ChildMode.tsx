@@ -63,7 +63,7 @@ const StarAnimation: React.FC = () => (
 
 export const ChildMode: React.FC = () => {
     const { state, dispatch } = useAppContext();
-    const { routines, activeRoutine, completedRoutinesToday, childName } = state;
+    const { routines, activeRoutine, completedRoutinesToday, childName, enablePlaytime } = state;
     const [showStarAnimation, setShowStarAnimation] = useState(false);
 
     const currentDay = DAYS_OF_WEEK[new Date().getDay()];
@@ -86,10 +86,10 @@ export const ChildMode: React.FC = () => {
                 dispatch({ type: 'SET_ACTIVE_ROUTINE', payload: 'Quests' });
             }
         }
-        if (activeRoutine === 'Playtime' && !isBedtimeComplete) {
+        if (activeRoutine === 'Playtime' && (!isBedtimeComplete || !enablePlaytime)) {
             dispatch({ type: 'SET_ACTIVE_ROUTINE', payload: 'Quests' });
         }
-    }, [activeRoutine, availableRoutines, dispatch, isBedtimeComplete]);
+    }, [activeRoutine, availableRoutines, dispatch, isBedtimeComplete, enablePlaytime]);
 
     useEffect(() => {
         Object.values(routines).forEach(routine => {
@@ -199,7 +199,7 @@ export const ChildMode: React.FC = () => {
            
             <nav className="fixed bottom-0 left-0 right-0 max-w-md md:max-w-3xl mx-auto p-2 bg-white/80 backdrop-blur-sm shadow-t-lg rounded-t-2xl">
                 <div className="flex justify-around">
-                    {[...availableRoutines, QUESTS_THEME, ...(isBedtimeComplete ? [PLAYTIME_THEME] : [])].map((item) => {
+                    {[...availableRoutines, QUESTS_THEME, ...(isBedtimeComplete && enablePlaytime ? [PLAYTIME_THEME] : [])].map((item) => {
                         const routine = item as Routine | typeof QUESTS_THEME;
                         const isActive = activeRoutine === routine.id;
                         return (

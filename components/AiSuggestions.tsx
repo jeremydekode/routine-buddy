@@ -19,14 +19,13 @@ const SuggestionCard: React.FC<{ suggestion: AiSuggestion }> = ({ suggestion }) 
 
     return (
         <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
-            <div className="flex justify-between items-start">
+            <div className="flex justify-between items-start mb-4">
                 <h4 className="font-bold text-slate-800">{suggestion.title}</h4>
                 <span className={`px-2 py-1 text-xs font-semibold rounded-full ${categoryColors[suggestion.category] || 'bg-gray-100 text-gray-700'}`}>
                     {suggestion.category}
                 </span>
             </div>
-            <p className="text-slate-500 mt-1 text-sm">{suggestion.description}</p>
-            <div className="mt-4 flex gap-2">
+            <div className="flex gap-2">
                 <button className="flex-1 bg-purple-500 text-white text-sm font-semibold py-2 rounded-lg hover:bg-purple-600 transition">Add to Routine</button>
                 <button className="flex-1 bg-slate-200 text-slate-700 text-sm font-semibold py-2 rounded-lg hover:bg-slate-300 transition">Dismiss</button>
             </div>

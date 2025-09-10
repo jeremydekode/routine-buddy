@@ -166,6 +166,7 @@ const appReducer = (state: AppState, action: AppAction): AppState => {
                 quests: action.payload.quests,
                 childName: action.payload.childName,
                 playtimeDuration: action.payload.playtimeDuration,
+                enablePlaytime: action.payload.enablePlaytime,
             };
             saveState(newState);
             return newState;
@@ -195,6 +196,7 @@ const rehydrateState = (loadedState: any): AppState => {
     loadedState.passwordIsSet = !!localStorage.getItem(PASSWORD_KEY);
     loadedState.playtimeDuration = loadedState.playtimeDuration ?? 10;
     loadedState.playtimeStarted = loadedState.playtimeStarted ?? false;
+    loadedState.enablePlaytime = loadedState.enablePlaytime ?? true;
     return loadedState;
 };
 
@@ -273,6 +275,7 @@ const getDefaultState = (): AppState => ({
     showPasswordModal: false,
     playtimeDuration: 10,
     playtimeStarted: false,
+    enablePlaytime: true,
 });
 
 const AppContext = createContext<{ state: AppState; dispatch: Dispatch<AppAction> } | undefined>(undefined);
