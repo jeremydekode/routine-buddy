@@ -3,10 +3,9 @@ import { useAppContext } from '../hooks/useAppContext';
 import { RoutineView } from './RoutineView';
 import { QuestView } from './QuestView';
 import { PlaytimeView } from './PlaytimeView';
-import { Routine, DAYS_OF_WEEK } from '../types';
+import { Routine, DAYS_OF_WEEK, ActiveViewId, ActiveRoutineId } from '../types';
 import { QUESTS_THEME, PLAYTIME_THEME } from '../constants';
-// FIX: Import StarIcon component to resolve 'Cannot find name' error.
-import { StarIcon } from './icons/Icons';
+import { StarIcon, ChevronLeftIcon, ChevronRightIcon } from './icons/Icons';
 import { ThemedProgressBar } from './ThemedProgressBar';
 
 let audioContext: AudioContext | null = null;
@@ -63,37 +62,53 @@ const StarAnimation: React.FC = () => (
 
 export const ChildMode: React.FC = () => {
     const { state, dispatch } = useAppContext();
-    const { routines, activeRoutine, completedRoutinesToday, childName, enablePlaytime } = state;
+    const { 
+        routines, 
+        activeRoutine, 
+        completedRoutinesToday, 
+        childName, 
+        enablePlaytime,
+        enableMorning,
+        enableAfterSchool,
+        enableBedtime 
+    } = state;
     const [showStarAnimation, setShowStarAnimation] = useState(false);
 
-    const currentDay = DAYS_OF_WEEK[new Date().getDay()];
+    const isRoutineComplete = (routine: Routine): boolean => {
+        return routine.tasks.length > 0 && routine.tasks.every(t => t.completed);
+    };
 
-    const availableRoutines = useMemo(() => {
-        return Object.values(routines).filter(r => r.days.includes(currentDay));
-    }, [routines, currentDay]);
+    const orderedEnabledRoutines = useMemo(() => {
+        const order: ActiveRoutineId[] = ['Morning', 'After-School', 'Bedtime'];
+        return order
+            .filter(id => 
+                (id === 'Morning' && enableMorning) ||
+                (id === 'After-School' && enableAfterSchool) ||
+                (id === 'Bedtime' && enableBedtime)
+            )
+            .map(id => routines[id]);
+    }, [routines, enableMorning, enableAfterSchool, enableBedtime]);
     
+    // Set initial routine on load
+    useEffect(() => {
+        const today = DAYS_OF_WEEK[new Date().getDay()];
+        const firstIncompleteRoutine = orderedEnabledRoutines.find(routine => 
+            routine.days.includes(today) && !isRoutineComplete(routine)
+        );
+        const initialRoutineId = firstIncompleteRoutine ? firstIncompleteRoutine.id : (orderedEnabledRoutines[0]?.id || 'Quests');
+        dispatch({ type: 'SET_ACTIVE_ROUTINE', payload: initialRoutineId });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [enableMorning, enableAfterSchool, enableBedtime]); // Run only when enabled routines change
+
+
     const isBedtimeComplete = useMemo(() => {
         const bedtimeRoutine = routines['Bedtime'];
-        return bedtimeRoutine && bedtimeRoutine.tasks.length > 0 && bedtimeRoutine.tasks.every(t => t.completed);
+        return bedtimeRoutine && isRoutineComplete(bedtimeRoutine);
     }, [routines]);
 
     useEffect(() => {
-        const activeRoutineIsAvailable = availableRoutines.some(r => r.id === activeRoutine);
-        if (!activeRoutineIsAvailable && activeRoutine !== 'Quests' && activeRoutine !== 'Playtime') {
-            if (availableRoutines.length > 0) {
-                dispatch({ type: 'SET_ACTIVE_ROUTINE', payload: availableRoutines[0].id });
-            } else {
-                dispatch({ type: 'SET_ACTIVE_ROUTINE', payload: 'Quests' });
-            }
-        }
-        if (activeRoutine === 'Playtime' && (!isBedtimeComplete || !enablePlaytime)) {
-            dispatch({ type: 'SET_ACTIVE_ROUTINE', payload: 'Quests' });
-        }
-    }, [activeRoutine, availableRoutines, dispatch, isBedtimeComplete, enablePlaytime]);
-
-    useEffect(() => {
         Object.values(routines).forEach(routine => {
-            if (routine.tasks.length > 0 && routine.tasks.every(t => t.completed) && !completedRoutinesToday.includes(routine.id)) {
+            if (isRoutineComplete(routine) && !completedRoutinesToday.includes(routine.id)) {
                 playStarEarnedSound();
                 dispatch({ type: 'AWARD_STAR_FOR_ROUTINE', payload: { routineId: routine.id } });
                 setShowStarAnimation(true);
@@ -102,27 +117,49 @@ export const ChildMode: React.FC = () => {
         });
     }, [routines, completedRoutinesToday, dispatch]);
     
-    const currentRoutine = activeRoutine !== 'Quests' && activeRoutine !== 'Playtime' ? routines[activeRoutine] : undefined;
+    const currentRoutineForDisplay = activeRoutine !== 'Quests' && activeRoutine !== 'Playtime' ? routines[activeRoutine] : undefined;
     
     const { progress } = useMemo(() => {
-        if (!currentRoutine) return { progress: 0 };
-        const completed = currentRoutine.tasks.filter(task => task.completed).length;
-        const total = currentRoutine.tasks.length;
+        if (!currentRoutineForDisplay) return { progress: 0 };
+        const completed = currentRoutineForDisplay.tasks.filter(task => task.completed).length;
+        const total = currentRoutineForDisplay.tasks.length;
         const progressPercentage = total > 0 ? (completed / total) * 100 : 0;
         return { progress: progressPercentage };
-    }, [currentRoutine]);
+    }, [currentRoutineForDisplay]);
 
     const displayTheme = useMemo(() => {
         if (activeRoutine === 'Quests') return QUESTS_THEME;
         if (activeRoutine === 'Playtime') return PLAYTIME_THEME;
-        return currentRoutine ? currentRoutine : QUESTS_THEME;
-    }, [activeRoutine, currentRoutine]);
+        return currentRoutineForDisplay ? currentRoutineForDisplay : QUESTS_THEME;
+    }, [activeRoutine, currentRoutineForDisplay]);
     
     const getDisplayName = () => {
+        if (!displayTheme) return '';
         if (displayTheme.id === 'Quests') return 'Quests';
         if (displayTheme.id === 'Playtime') return 'Playtime!';
-        const routineName = displayTheme.name.replace(' Routine', '');
-        return `${childName}'s ${routineName}`;
+        if ('name' in displayTheme) {
+            const routineName = displayTheme.name.replace(' Routine', '');
+            return `${childName}'s ${routineName}`;
+        }
+        return "Let's Go!";
+    };
+    
+    const activeRoutineIndex = useMemo(() => 
+        orderedEnabledRoutines.findIndex(r => r.id === activeRoutine),
+    [orderedEnabledRoutines, activeRoutine]);
+
+    const canGoBack = activeRoutineIndex > 0;
+    const canGoNext = activeRoutineIndex !== -1 && activeRoutineIndex < orderedEnabledRoutines.length - 1;
+    
+    const handleBack = () => {
+        if (canGoBack) {
+            dispatch({ type: 'SET_ACTIVE_ROUTINE', payload: orderedEnabledRoutines[activeRoutineIndex - 1].id });
+        }
+    };
+    const handleNext = () => {
+        if (canGoNext) {
+            dispatch({ type: 'SET_ACTIVE_ROUTINE', payload: orderedEnabledRoutines[activeRoutineIndex + 1].id });
+        }
     };
 
     const renderContent = () => {
@@ -132,9 +169,18 @@ export const ChildMode: React.FC = () => {
             case 'Playtime':
                 return <PlaytimeView />;
             default:
-                return currentRoutine ? <RoutineView key={currentRoutine.id} routine={currentRoutine} /> : <QuestView />;
+                return currentRoutineForDisplay ? <RoutineView key={currentRoutineForDisplay.id} routine={currentRoutineForDisplay} /> : <QuestView />;
         }
     };
+    
+    const navItems = useMemo(() => {
+        const items: (Routine | typeof QUESTS_THEME | typeof PLAYTIME_THEME)[] = [...orderedEnabledRoutines];
+        items.push(QUESTS_THEME);
+        if (isBedtimeComplete && enablePlaytime) {
+            items.push(PLAYTIME_THEME);
+        }
+        return items;
+    }, [orderedEnabledRoutines, isBedtimeComplete, enablePlaytime]);
 
     return (
         <div className="pt-16 pb-24">
@@ -183,29 +229,50 @@ export const ChildMode: React.FC = () => {
 
             <div className="text-center mb-6">
                 <div className="inline-block p-4 bg-white/50 rounded-full shadow-lg">
-                    {displayTheme.theme.icon}
+                    {displayTheme?.theme.icon}
                 </div>
                 <h1 className="text-4xl md:text-5xl font-bold text-slate-700 mt-4">{getDisplayName()}</h1>
-                <p className="text-slate-500">
-                    {activeRoutine === 'Quests' ? 'Check your awesome progress!' : activeRoutine === 'Playtime' ? 'Time for some fun!' : "Let's get started!"}
+                 <p className="text-slate-500">
+                    {activeRoutine === 'Quests' 
+                        ? "Check your awesome progress!"
+                        : activeRoutine === 'Playtime' 
+                            ? 'Time for some fun!' 
+                            : "Let's get started!"}
                 </p>
             </div>
             
-            {currentRoutine && (
-                 <ThemedProgressBar progress={progress} themeColorClass={currentRoutine.theme.color} />
+            {currentRoutineForDisplay && (
+                 <ThemedProgressBar progress={progress} themeColorClass={currentRoutineForDisplay.theme.color} />
             )}
+
+            <div className="flex items-center justify-between my-4">
+                <button
+                    onClick={handleBack}
+                    disabled={!canGoBack}
+                    className="flex items-center gap-2 bg-white/60 backdrop-blur-sm rounded-full p-3 shadow-md hover:bg-white transition-all focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-30 disabled:cursor-not-allowed"
+                >
+                    <ChevronLeftIcon className="w-6 h-6 text-slate-600" />
+                </button>
+                 <button
+                    onClick={handleNext}
+                    disabled={!canGoNext}
+                    className="flex items-center gap-2 bg-white/60 backdrop-blur-sm rounded-full p-3 shadow-md hover:bg-white transition-all focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-30 disabled:cursor-not-allowed"
+                >
+                    <ChevronRightIcon className="w-6 h-6 text-slate-600" />
+                </button>
+            </div>
            
             {renderContent()}
            
             <nav className="fixed bottom-0 left-0 right-0 max-w-md md:max-w-3xl mx-auto p-2 bg-white/80 backdrop-blur-sm shadow-t-lg rounded-t-2xl">
                 <div className="flex justify-around">
-                    {[...availableRoutines, QUESTS_THEME, ...(isBedtimeComplete && enablePlaytime ? [PLAYTIME_THEME] : [])].map((item) => {
+                     {navItems.map((item) => {
                         const routine = item as Routine | typeof QUESTS_THEME;
                         const isActive = activeRoutine === routine.id;
                         return (
                              <button 
                                 key={routine.id}
-                                onClick={() => dispatch({ type: 'SET_ACTIVE_ROUTINE', payload: routine.id })}
+                                onClick={() => dispatch({ type: 'SET_ACTIVE_ROUTINE', payload: routine.id as ActiveViewId })}
                                 className={`flex flex-col items-center justify-center w-20 h-20 rounded-xl transition-all ${isActive ? 'bg-purple-500 text-white scale-105 shadow-lg' : 'text-slate-500'}`}
                             >
                                 <div className="w-8 h-8">

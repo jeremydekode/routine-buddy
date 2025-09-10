@@ -77,6 +77,9 @@ export interface AppState {
     playtimeDuration: number; // in minutes
     playtimeStarted: boolean;
     enablePlaytime: boolean;
+    enableMorning: boolean;
+    enableAfterSchool: boolean;
+    enableBedtime: boolean;
 }
 
 // Actions
@@ -99,6 +102,6 @@ export type AppAction =
     | { type: 'SET_PASSWORD_STATUS'; payload: boolean }
     | { type: 'SHOW_PASSWORD_MODAL' }
     | { type: 'HIDE_PASSWORD_MODAL' }
-    | { type: 'UPDATE_PARENT_SETTINGS'; payload: { routines: Record<ActiveRoutineId, Routine>, quests: { weekly: Quest, monthly: Quest }, childName: string, playtimeDuration: number, enablePlaytime: boolean } }
+    | { type: 'UPDATE_PARENT_SETTINGS'; payload: { routines: Record<ActiveRoutineId, Routine>, quests: { weekly: Quest, monthly: Quest }, childName: string, playtimeDuration: number, enablePlaytime: boolean, enableMorning: boolean, enableAfterSchool: boolean, enableBedtime: boolean } }
     | { type: 'START_PLAYTIME' }
     | { type: 'HYDRATE_STATE', payload: AppState };

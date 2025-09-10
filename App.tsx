@@ -42,12 +42,12 @@ const App: React.FC = () => {
                 <button
                     onClick={handleToggleMode}
                     className="absolute top-4 right-4 md:top-8 md:right-8 z-20 bg-white/70 backdrop-blur-sm rounded-full p-3 shadow-md hover:bg-white transition-all focus:outline-none focus:ring-2 focus:ring-purple-500"
-                    aria-label={state.mode === Mode.Child ? "Switch to Parent Mode" : "Switch to Child Mode"}
+                    aria-label={state.mode === Mode.Child ? "Switch to Parent Mode" : "Back to Child Mode"}
                 >
                     {state.mode === Mode.Child ? (
                         <i className="fa-solid fa-user-tie text-slate-600 w-6 h-6"></i>
                     ) : (
-                        <i className="fa-solid fa-child text-slate-600 w-6 h-6"></i>
+                        <i className="fa-solid fa-arrow-left text-slate-600 w-6 h-6"></i>
                     )}
                 </button>
 

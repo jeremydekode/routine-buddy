@@ -13,6 +13,9 @@ interface DraftState {
     childName: string;
     playtimeDuration: number;
     enablePlaytime: boolean;
+    enableMorning: boolean;
+    enableAfterSchool: boolean;
+    enableBedtime: boolean;
 }
 
 // FIX: Define the ParentTab type for the different parent mode views.
@@ -28,10 +31,12 @@ export const ParentMode: React.FC = () => {
         childName: state.childName,
         playtimeDuration: state.playtimeDuration,
         enablePlaytime: state.enablePlaytime,
+        enableMorning: state.enableMorning,
+        enableAfterSchool: state.enableAfterSchool,
+        enableBedtime: state.enableBedtime,
     });
     const [isDirty, setIsDirty] = useState(false);
 
-    // Reset draft state if global state changes (e.g., from child mode) and there are no local unsaved changes
     useEffect(() => {
         if (!isDirty) {
             setDraftState({
@@ -40,18 +45,21 @@ export const ParentMode: React.FC = () => {
                 childName: state.childName,
                 playtimeDuration: state.playtimeDuration,
                 enablePlaytime: state.enablePlaytime,
+                enableMorning: state.enableMorning,
+                enableAfterSchool: state.enableAfterSchool,
+                enableBedtime: state.enableBedtime,
             });
         }
-    }, [state.routines, state.quests, state.childName, state.playtimeDuration, state.enablePlaytime, isDirty]);
-
-    // Check for unsaved changes by comparing a serializable version of the draft to the global state
+    }, [
+        state.routines, state.quests, state.childName, state.playtimeDuration, 
+        state.enablePlaytime, state.enableMorning, state.enableAfterSchool, state.enableBedtime, 
+        isDirty
+    ]);
+    
     useEffect(() => {
-        // Helper to create a serializable version of the state for reliable comparison.
-        // This removes non-serializable parts like React components (e.g., icons in themes).
-        const getSerializableState = (data: DraftState | { routines: Record<ActiveRoutineId, Routine>, quests: { weekly: Quest; monthly: Quest }, childName: string, playtimeDuration: number, enablePlaytime: boolean }) => {
+        const getSerializableState = (data: any) => {
             const serializableRoutines = Object.fromEntries(
-                Object.entries(data.routines).map(([routineId, routine]) => {
-                    // Create a copy of the routine without the 'theme' property
+                Object.entries(data.routines).map(([routineId, routine]: [string, any]) => {
                     const { theme, ...rest } = routine;
                     return [routineId, rest];
                 })
@@ -62,14 +70,17 @@ export const ParentMode: React.FC = () => {
                 childName: data.childName,
                 playtimeDuration: data.playtimeDuration,
                 enablePlaytime: data.enablePlaytime,
+                enableMorning: data.enableMorning,
+                enableAfterSchool: data.enableAfterSchool,
+                enableBedtime: data.enableBedtime,
             };
         };
     
-        const original = JSON.stringify(getSerializableState({ routines: state.routines, quests: state.quests, childName: state.childName, playtimeDuration: state.playtimeDuration, enablePlaytime: state.enablePlaytime }));
+        const original = JSON.stringify(getSerializableState(state));
         const draft = JSON.stringify(getSerializableState(draftState));
     
         setIsDirty(original !== draft);
-    }, [draftState, state.routines, state.quests, state.childName, state.playtimeDuration, state.enablePlaytime]);
+    }, [draftState, state]);
 
 
     const handleSave = () => {
@@ -77,13 +88,15 @@ export const ParentMode: React.FC = () => {
     };
 
     const handleDiscard = () => {
-        // Reset draft state back to the original global state
         setDraftState({
             routines: state.routines,
             quests: state.quests,
             childName: state.childName,
             playtimeDuration: state.playtimeDuration,
             enablePlaytime: state.enablePlaytime,
+            enableMorning: state.enableMorning,
+            enableAfterSchool: state.enableAfterSchool,
+            enableBedtime: state.enableBedtime,
         });
     };
 
@@ -124,6 +137,12 @@ export const ParentMode: React.FC = () => {
                     onPlaytimeDurationChange={(newDuration) => setDraftState(s => ({...s, playtimeDuration: newDuration}))}
                     enablePlaytime={draftState.enablePlaytime}
                     onEnablePlaytimeChange={(isEnabled) => setDraftState(s => ({...s, enablePlaytime: isEnabled}))}
+                    enableMorning={draftState.enableMorning}
+                    onEnableMorningChange={(isEnabled) => setDraftState(s => ({...s, enableMorning: isEnabled}))}
+                    enableAfterSchool={draftState.enableAfterSchool}
+                    onEnableAfterSchoolChange={(isEnabled) => setDraftState(s => ({...s, enableAfterSchool: isEnabled}))}
+                    enableBedtime={draftState.enableBedtime}
+                    onEnableBedtimeChange={(isEnabled) => setDraftState(s => ({...s, enableBedtime: isEnabled}))}
                 />}
             </main>
              {isDirty && (

@@ -10,9 +10,22 @@ interface ProfileConfiguratorProps {
     onPlaytimeDurationChange: (duration: number) => void;
     enablePlaytime: boolean;
     onEnablePlaytimeChange: (enabled: boolean) => void;
+    enableMorning: boolean;
+    onEnableMorningChange: (enabled: boolean) => void;
+    enableAfterSchool: boolean;
+    onEnableAfterSchoolChange: (enabled: boolean) => void;
+    enableBedtime: boolean;
+    onEnableBedtimeChange: (enabled: boolean) => void;
 }
 
-export const ProfileConfigurator: React.FC<ProfileConfiguratorProps> = ({ childName, onChildNameChange, playtimeDuration, onPlaytimeDurationChange, enablePlaytime, onEnablePlaytimeChange }) => {
+export const ProfileConfigurator: React.FC<ProfileConfiguratorProps> = ({ 
+    childName, onChildNameChange, 
+    playtimeDuration, onPlaytimeDurationChange, 
+    enablePlaytime, onEnablePlaytimeChange,
+    enableMorning, onEnableMorningChange,
+    enableAfterSchool, onEnableAfterSchoolChange,
+    enableBedtime, onEnableBedtimeChange
+}) => {
     const { state, dispatch } = useAppContext();
     const [isPinModalOpen, setIsPinModalOpen] = useState(false);
     const [isChangingPin, setIsChangingPin] = useState(false);
@@ -54,6 +67,28 @@ export const ProfileConfigurator: React.FC<ProfileConfiguratorProps> = ({ childN
                             placeholder="e.g., Buddy"
                         />
                          <p className="text-xs text-slate-400 mt-1">This name will be used in greetings.</p>
+                    </div>
+                </div>
+
+                {/* Routine Settings Section */}
+                <div>
+                    <h3 className="text-lg font-semibold text-slate-600 mb-3">Routine Settings</h3>
+                    <div className="bg-slate-50 p-4 rounded-xl space-y-4">
+                        <ToggleSwitch
+                            label="Enable Morning Routine"
+                            checked={enableMorning}
+                            onChange={onEnableMorningChange}
+                        />
+                        <ToggleSwitch
+                            label="Enable After-School Routine"
+                            checked={enableAfterSchool}
+                            onChange={onEnableAfterSchoolChange}
+                        />
+                        <ToggleSwitch
+                            label="Enable Bedtime Routine"
+                            checked={enableBedtime}
+                            onChange={onEnableBedtimeChange}
+                        />
                     </div>
                 </div>
 

@@ -7,7 +7,7 @@ export const QUESTS_THEME = {
     id: 'Quests',
     name: 'Quests',
     theme: {
-        icon: <StarIcon className="text-purple-500" />,
+        icon: <StarIcon className="text-yellow-500" />,
         color: 'bg-purple-100',
     },
 } as const;

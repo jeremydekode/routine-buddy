@@ -167,6 +167,9 @@ const appReducer = (state: AppState, action: AppAction): AppState => {
                 childName: action.payload.childName,
                 playtimeDuration: action.payload.playtimeDuration,
                 enablePlaytime: action.payload.enablePlaytime,
+                enableMorning: action.payload.enableMorning,
+                enableAfterSchool: action.payload.enableAfterSchool,
+                enableBedtime: action.payload.enableBedtime,
             };
             saveState(newState);
             return newState;
@@ -197,6 +200,9 @@ const rehydrateState = (loadedState: any): AppState => {
     loadedState.playtimeDuration = loadedState.playtimeDuration ?? 10;
     loadedState.playtimeStarted = loadedState.playtimeStarted ?? false;
     loadedState.enablePlaytime = loadedState.enablePlaytime ?? true;
+    loadedState.enableMorning = loadedState.enableMorning ?? true;
+    loadedState.enableAfterSchool = loadedState.enableAfterSchool ?? true;
+    loadedState.enableBedtime = loadedState.enableBedtime ?? true;
     return loadedState;
 };
 
@@ -276,6 +282,9 @@ const getDefaultState = (): AppState => ({
     playtimeDuration: 10,
     playtimeStarted: false,
     enablePlaytime: true,
+    enableMorning: true,
+    enableAfterSchool: true,
+    enableBedtime: true,
 });
 
 const AppContext = createContext<{ state: AppState; dispatch: Dispatch<AppAction> } | undefined>(undefined);
