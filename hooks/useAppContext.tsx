@@ -1,3 +1,7 @@
+import { useEffect, useRef } from 'react';
+import { supabase } from '../lib/supabaseClient';
+import { loadCloudState, saveCloudState } from '../services/cloudSync';
+
 // ADD
 import { loadCloudState, saveCloudState } from '../services/cloudSync';
 import { supabase } from '../lib/supabaseClient';
@@ -310,6 +314,102 @@ const debouncedSave = (payload: any, delay = 800) => {
             dispatch({ type: 'RESET_DAILY_STATE' });
         }
     }, []); // Check only on initial load
+
+    // --- Cloud sync: hydrate on login, then keep saving changes ---
+
+// small debounce so we don't spam the DB on rapid changes
+const saveTimer = useRef<number | null>(null);
+const debouncedSave = (payload: any, delay = 800) => {
+  if (saveTimer.current) window.clearTimeout(saveTimer.current);
+  // @ts-ignore
+  saveTimer.current = window.setTimeout(() => {
+    saveCloudState(payload).catch(console.error);
+  }, delay);
+};
+
+// Try to pull cloud state when the user is logged in
+useEffect(() => {
+  let isMounted = true;
+
+  const hydrate = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+
+    const cloud = await loadCloudState().catch(() => null);
+    if (!cloud || !isMounted) return;
+
+    // ---- OPTION A (preferred): use your existing reducer actions to merge parts ----
+    try {
+      // Replace/merge the bits you already manage in the reducer.
+      // If any of these actions don't exist in your reducer, skip that line.
+      if (cloud.routines) {
+        dispatch({ type: 'UPDATE_PARENT_SETTINGS', payload: { routines: cloud.routines } });
+      }
+      if (cloud.quests) {
+        dispatch({ type: 'UPDATE_PARENT_SETTINGS', payload: { quests: cloud.quests } });
+      }
+      if (typeof cloud.childName === 'string') {
+        dispatch({ type: 'UPDATE_PARENT_SETTINGS', payload: { childName: cloud.childName } });
+      }
+      if (typeof cloud.starCount === 'number') {
+        dispatch({ type: 'SET_STAR_COUNT', payload: cloud.starCount });
+      }
+      if (Array.isArray(cloud.completedRoutinesToday)) {
+        dispatch({ type: 'SET_COMPLETED_ROUTINES_TODAY', payload: cloud.completedRoutinesToday });
+      }
+      if (typeof cloud.weeklyQuestPending === 'boolean') {
+        dispatch({ type: 'SET_WEEKLY_QUEST_PENDING', payload: cloud.weeklyQuestPending });
+      }
+      if (typeof cloud.monthlyQuestPending === 'boolean') {
+        dispatch({ type: 'SET_MONTHLY_QUEST_PENDING', payload: cloud.monthlyQuestPending });
+      }
+    } catch (err) {
+      // ---- OPTION B (fallback): write whole cloud JSON to localStorage and reload ----
+      // Use this ONLY if your reducer doesn't have the actions above.
+      try {
+        localStorage.setItem('routine-buddy-state', JSON.stringify(cloud));
+        window.location.reload();
+      } catch {}
+    }
+  };
+
+  hydrate();
+
+  // re-hydrate on future auth state changes too
+  const sub = supabase.auth.onAuthStateChange((_e, session) => {
+    if (session) hydrate();
+  });
+
+  return () => {
+    isMounted = false;
+    sub.data?.subscription?.unsubscribe?.();
+  };
+}, [dispatch]);
+
+// Select only the parts you want to sync (PIN is intentionally NOT included)
+const syncableState = {
+  routines: state.routines,
+  quests: state.quests,
+  childName: state.childName,
+  starCount: state.starCount,
+  completedRoutinesToday: state.completedRoutinesToday,
+  weeklyQuestPending: state.weeklyQuestPending,
+  monthlyQuestPending: state.monthlyQuestPending,
+};
+
+// Whenever these change, save to Supabase (and you already save to localStorage elsewhere)
+useEffect(() => {
+  debouncedSave(syncableState);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [
+  state.routines,
+  state.quests,
+  state.childName,
+  state.starCount,
+  state.completedRoutinesToday,
+  state.weeklyQuestPending,
+  state.monthlyQuestPending,
+]);
 
 
     return (
