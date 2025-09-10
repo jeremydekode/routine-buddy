@@ -2,7 +2,7 @@ import React from 'react';
 import { ParentMode } from './components/ParentMode';
 import { ChildMode } from './components/ChildMode';
 import { useAppContext } from './hooks/useAppContext';
-import { Mode } from './types';
+import { Mode, ActiveRoutineId } from './types';
 import { PasswordModal } from './components/PasswordModal';
 import { PASSWORD_KEY } from './hooks/useAppContext';
 
@@ -25,13 +25,20 @@ const App: React.FC = () => {
 
     const getBackgroundColor = () => {
         if (state.mode === Mode.Child) {
-            // Check if activeRoutine is a valid routine ID before accessing theme
-            if (state.activeRoutine !== 'Quests' && state.routines[state.activeRoutine]) {
-                return state.routines[state.activeRoutine].theme.color;
-            } else if (state.activeRoutine === 'Quests') {
+            if (state.activeRoutine === 'Quests') {
                 return 'bg-purple-100';
             }
-            return 'bg-gray-100'; // Fallback
+            // Check if activeRoutine is a routine ID and safely access its properties
+            if (state.activeRoutine in state.routines) {
+                const routineId = state.activeRoutine as ActiveRoutineId;
+                const routine = state.routines[routineId];
+                // Safely access theme and color to prevent crashes on invalid state
+                if (routine && routine.theme) {
+                    return routine.theme.color;
+                }
+            }
+            // Fallback for Playtime, invalid routines, or routines without themes
+            return 'bg-gray-100';
         }
         return 'bg-slate-100';
     };
