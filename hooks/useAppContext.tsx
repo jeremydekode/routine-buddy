@@ -368,13 +368,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
   }, [dispatch]);
 
-  // Cloud save debounce
-  const saveTimerRef = useRef<number | null>(null);
-  const debouncedSave = (payload: any, delay = 800) => {
-    if (saveTimerRef.current) window.clearTimeout(saveTimerRef.current);
-    saveTimerRef.current = window.setTimeout(() => {
-      saveCloudState(payload).catch(console.error);
-    }, delay) as unknown as number;
   };
 
   const syncableState = {
