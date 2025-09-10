@@ -1,16 +1,14 @@
-// ADD
-import { loadCloudState, saveCloudState } from '../services/cloudSync';
-import { supabase } from '../lib/supabaseClient';
-import { useRef } from 'react';
-
-import React, { createContext, useContext, useReducer, Dispatch, useEffect } from 'react';
+import React, { createContext, useContext, useReducer, Dispatch, useEffect, useState } from 'react';
 import { Mode, Routine, ActiveRoutineId, Task, Day, Quest, ActiveViewId, AppState, AppAction, QuestId } from '../types';
 import { INITIAL_ROUTINES, INITIAL_QUESTS } from '../constants';
+import { supabase } from '../services/supabase';
 
 // Reducer
 const appReducer = (state: AppState, action: AppAction): AppState => {
     let newState: AppState;
     switch (action.type) {
+        case 'HYDRATE_STATE':
+            return action.payload;
         case 'TOGGLE_MODE':
             return { ...state, mode: state.mode === Mode.Child ? Mode.Parent : Mode.Child };
         case 'SET_ACTIVE_ROUTINE':
@@ -101,16 +99,12 @@ const appReducer = (state: AppState, action: AppAction): AppState => {
             return { ...state, routines: newRoutines };
         }
         case 'RESET_DAILY_STATE': {
-            // Perform a safe, deep copy without using JSON.stringify on React components
             const newRoutines = { ...state.routines };
             for (const key in newRoutines) {
                 const routineId = key as ActiveRoutineId;
                 newRoutines[routineId] = {
                     ...newRoutines[routineId],
-                    tasks: newRoutines[routineId].tasks.map(task => ({
-                        ...task,
-                        completed: false,
-                    })),
+                    tasks: newRoutines[routineId].tasks.map(task => ({ ...task, completed: false })),
                 };
             }
             newState = {
@@ -173,7 +167,7 @@ const appReducer = (state: AppState, action: AppAction): AppState => {
             return { ...state, childName: action.payload };
         case 'SET_PASSWORD_STATUS':
             newState = { ...state, passwordIsSet: action.payload };
-            saveState(newState); // Persist this change immediately
+            saveState(newState);
             return newState;
         case 'SHOW_PASSWORD_MODAL':
             return { ...state, showPasswordModal: true };
@@ -194,189 +188,140 @@ const appReducer = (state: AppState, action: AppAction): AppState => {
     }
 };
 
-// Local Storage
 const LOCAL_STORAGE_KEY = 'kid-routine-app-state';
 export const PASSWORD_KEY = 'routine-buddy-password';
+const SUPABASE_STATE_ID = 1;
 
-const loadState = (): AppState | undefined => {
-    try {
-        const serializedState = localStorage.getItem(LOCAL_STORAGE_KEY);
-        if (serializedState === null) {
-            return undefined;
+const rehydrateState = (loadedState: any): AppState => {
+    for (const key in loadedState.routines) {
+        const routineId = key as ActiveRoutineId;
+        if (INITIAL_ROUTINES[routineId]) {
+            loadedState.routines[routineId].theme = INITIAL_ROUTINES[routineId].theme;
         }
-        const loadedState = JSON.parse(serializedState);
+    }
+    loadedState.imageGenerationApiRateLimited = false;
+    loadedState.showPasswordModal = false;
+    loadedState.passwordIsSet = !!localStorage.getItem(PASSWORD_KEY);
+    return loadedState;
+};
 
-        // Rehydrate the state with non-serializable data (React components for icons)
-        for (const key in loadedState.routines) {
-            const routineId = key as ActiveRoutineId;
-            if (INITIAL_ROUTINES[routineId]) {
-                // Restore the entire theme object from constants to get the icon
-                loadedState.routines[routineId].theme = INITIAL_ROUTINES[routineId].theme;
+const loadState = async (): Promise<AppState | undefined> => {
+    try {
+        if (supabase) {
+            const { data, error } = await supabase
+                .from('app_state')
+                .select('data')
+                .eq('id', SUPABASE_STATE_ID)
+                .single();
+
+            if (error && error.code !== 'PGRST116') {
+                console.error("Error loading state from Supabase:", error);
+            }
+            if (data && data.data) {
+                return rehydrateState(data.data);
             }
         }
-
-        // Reset runtime-only state that should not be persisted
-        loadedState.imageGenerationApiRateLimited = false;
-        loadedState.showPasswordModal = false;
-        
-        // Check if password exists
-        loadedState.passwordIsSet = !!localStorage.getItem(PASSWORD_KEY);
-
-        return loadedState;
+        const serializedState = localStorage.getItem(LOCAL_STORAGE_KEY);
+        if (serializedState === null) return undefined;
+        const localState = JSON.parse(serializedState);
+        return rehydrateState(localState);
     } catch (err) {
-        console.error("Could not load state from localStorage", err);
+        console.error("Could not load state", err);
         return undefined;
     }
 };
 
-const saveState = (state: AppState) => {
-    try {
-        // Create a serializable copy of the state object to avoid corrupting the live state
-        const stateToSave = {
-            ...state,
-            routines: Object.fromEntries(
-                Object.entries(state.routines).map(([routineId, routine]) => {
-                    const serializableRoutine = {
-                        ...routine,
-                        // Omit the theme, as it contains the non-serializable icon component
-                        theme: undefined,
-                        tasks: routine.tasks.map(task => {
-                            // Omit the dynamic image data from persisted tasks
-                            const { image, ...rest } = task;
-                            return rest;
-                        }),
-                    };
-                    delete serializableRoutine.theme;
-                    return [routineId, serializableRoutine];
-                })
-            ),
-             // Don't save these runtime states
-            showPasswordModal: undefined,
-            imageGenerationApiRateLimited: undefined,
-        };
-        delete stateToSave.showPasswordModal;
-        delete stateToSave.imageGenerationApiRateLimited;
+const serializeStateForSaving = (state: AppState) => {
+    const stateToSave = {
+        ...state,
+        routines: Object.fromEntries(
+            Object.entries(state.routines).map(([routineId, routine]) => {
+                const { theme, ...serializableRoutine } = routine;
+                return [routineId, {
+                    ...serializableRoutine,
+                    tasks: routine.tasks.map(task => {
+                        const { image, ...rest } = task;
+                        return rest;
+                    }),
+                }];
+            })
+        ),
+        showPasswordModal: undefined,
+        imageGenerationApiRateLimited: undefined,
+    };
+    delete stateToSave.showPasswordModal;
+    delete stateToSave.imageGenerationApiRateLimited;
+    return stateToSave;
+};
 
+const saveState = async (state: AppState) => {
+    try {
+        const stateToSave = serializeStateForSaving(state);
+        
+        if (supabase) {
+            const { error } = await supabase.from('app_state').upsert({ id: SUPABASE_STATE_ID, data: stateToSave });
+            if (error) {
+                console.error("Could not save state to Supabase, will only save locally.", error);
+            }
+        }
 
         const serializedState = JSON.stringify(stateToSave);
         localStorage.setItem(LOCAL_STORAGE_KEY, serializedState);
     } catch (err) {
-        console.error("Could not save state to localStorage", err);
+        console.error("Could not save state.", err);
     }
 };
 
-const getInitialState = (): AppState => {
-    const savedState = loadState();
-    if (savedState) {
-        return savedState;
-    }
-    return {
-        mode: Mode.Child,
-        routines: INITIAL_ROUTINES,
-        quests: INITIAL_QUESTS,
-        activeRoutine: 'Morning',
-        starCount: 0,
-        completedRoutinesToday: [],
-        lastCompletionDate: new Date().toISOString().split('T')[0],
-        imageGenerationApiRateLimited: false,
-        weeklyQuestPending: false,
-        monthlyQuestPending: false,
-        starAdjustmentLog: [],
-        childName: 'Buddy',
-        passwordIsSet: !!localStorage.getItem(PASSWORD_KEY),
-        showPasswordModal: false,
-    };
-};
+const getDefaultState = (): AppState => ({
+    mode: Mode.Child,
+    routines: INITIAL_ROUTINES,
+    quests: INITIAL_QUESTS,
+    activeRoutine: 'Morning',
+    starCount: 0,
+    completedRoutinesToday: [],
+    lastCompletionDate: new Date().toISOString().split('T')[0],
+    imageGenerationApiRateLimited: false,
+    weeklyQuestPending: false,
+    monthlyQuestPending: false,
+    starAdjustmentLog: [],
+    childName: 'Buddy',
+    passwordIsSet: !!localStorage.getItem(PASSWORD_KEY),
+    showPasswordModal: false,
+});
 
-// Context
 const AppContext = createContext<{ state: AppState; dispatch: Dispatch<AppAction> } | undefined>(undefined);
 
-// Provider
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const [state, dispatch] = useReducer(appReducer, getInitialState());
-
-    // ADD: debounce helper so we don’t spam the DB
-const saveTimer = useRef<number | null>(null);
-const debouncedSave = (payload: any, delay = 800) => {
-  if (saveTimer.current) window.clearTimeout(saveTimer.current);
-  // @ts-ignore
-  saveTimer.current = window.setTimeout(() => saveCloudState(payload).catch(console.error), delay);
-};
-// ADD: when user signs in, try loading cloud state and merge into local
-useEffect(() => {
-  let unsub: { subscription: { unsubscribe: () => void } } | null = null;
-
-  // on first render, and also on auth changes
-  supabase.auth.getSession().then(({ data }) => {
-    const session = data.session;
-    if (session) {
-      loadCloudState().then(cloud => {
-        if (!cloud) return;
-        // Merge only the parts your app uses. Keep PIN local.
-        if (cloud.routines || cloud.quests || cloud.childName) {
-          dispatch({
-            type: 'UPDATE_PARENT_SETTINGS',
-            payload: {
-              routines: cloud.routines ?? state.routines,
-              quests: cloud.quests ?? state.quests,
-              childName: cloud.childName ?? state.childName,
-            }
-          });
-        }
-        if (typeof cloud.starCount === 'number') {
-          dispatch({ type: 'SET_STAR_COUNT', payload: cloud.starCount });
-        }
-        if (Array.isArray(cloud.completedRoutinesToday)) {
-          dispatch({ type: 'SET_COMPLETED_ROUTINES_TODAY', payload: cloud.completedRoutinesToday });
-        }
-        if (typeof cloud.weeklyQuestPending === 'boolean') {
-          dispatch({ type: 'SET_WEEKLY_QUEST_PENDING', payload: cloud.weeklyQuestPending });
-        }
-        if (typeof cloud.monthlyQuestPending === 'boolean') {
-          dispatch({ type: 'SET_MONTHLY_QUEST_PENDING', payload: cloud.monthlyQuestPending });
-        }
-        // add any other fields you want restored the same way
-      }).catch(console.error);
-    }
-  });
-
-  
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-}, []);
-// Select only the pieces you want to sync (exclude PIN)
-const syncableState = {
-  routines: state.routines,
-  quests: state.quests,
-  childName: state.childName,
-  starCount: state.starCount,
-  completedRoutinesToday: state.completedRoutinesToday,
-  weeklyQuestPending: state.weeklyQuestPending,
-  monthlyQuestPending: state.monthlyQuestPending,
-  // add more fields if you want
-};
-
-useEffect(() => {
-  // Also keep your existing localStorage save (already in your file).
-  debouncedSave(syncableState);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-}, [
-  state.routines,
-  state.quests,
-  state.childName,
-  state.starCount,
-  state.completedRoutinesToday,
-  state.weeklyQuestPending,
-  state.monthlyQuestPending,
-]);
-
+    const [state, dispatch] = useReducer(appReducer, getDefaultState());
+    const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        const today = new Date().toISOString().split('T')[0];
-        if (state.lastCompletionDate !== today) {
-            dispatch({ type: 'RESET_DAILY_STATE' });
-        }
-    }, []); // Check only on initial load
+        const initializeState = async () => {
+            const savedState = await loadState();
+            if (savedState) {
+                dispatch({ type: 'HYDRATE_STATE', payload: savedState });
+            }
+            setIsLoading(false);
+        };
+        initializeState();
+    }, []);
 
+    useEffect(() => {
+        if (!isLoading) {
+            const today = new Date().toISOString().split('T')[0];
+            if (state.lastCompletionDate !== today) {
+                dispatch({ type: 'RESET_DAILY_STATE' });
+            }
+        }
+    }, [isLoading, state.lastCompletionDate]);
+
+    if (isLoading) {
+        return (
+            <div className="flex items-center justify-center min-h-screen bg-slate-50">
+                <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-purple-500"></div>
+            </div>
+        );
+    }
 
     return (
         <AppContext.Provider value={{ state, dispatch }}>
@@ -385,7 +330,6 @@ useEffect(() => {
     );
 };
 
-// Hook
 export const useAppContext = () => {
     const context = useContext(AppContext);
     if (context === undefined) {

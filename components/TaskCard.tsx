@@ -20,7 +20,8 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, routineId }) => {
     const [isTimerRunning, setIsTimerRunning] = useState(false);
 
     useEffect(() => {
-        let interval: NodeJS.Timeout | null = null;
+        // FIX: The type `NodeJS.Timeout` is not available in browser environments. Switched to a compatible type.
+        let interval: ReturnType<typeof setInterval> | null = null;
         if (isTimerRunning && timer !== null && timer > 0) {
             interval = setInterval(() => {
                 setTimer(t => (t ? t - 1 : 0));
