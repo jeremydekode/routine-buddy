@@ -6,11 +6,55 @@ import { Routine, DAYS_OF_WEEK } from '../types';
 import { QUESTS_THEME } from '../constants';
 // FIX: Import StarIcon component to resolve 'Cannot find name' error.
 import { StarIcon } from './icons/Icons';
+import { ThemedProgressBar } from './ThemedProgressBar';
+
+let audioContext: AudioContext | null = null;
+const getAudioContext = (): AudioContext | null => {
+    if (typeof window === 'undefined') return null;
+    if (!audioContext) {
+        try {
+            audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+        } catch (e) {
+            console.error("Web Audio API is not supported in this browser");
+            return null;
+        }
+    }
+    return audioContext;
+};
+
+const playStarEarnedSound = () => {
+    const context = getAudioContext();
+    if (!context) return;
+
+    if (context.state === 'suspended') {
+        context.resume();
+    }
+
+    const oscillator = context.createOscillator();
+    const gainNode = context.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(context.destination);
+
+    oscillator.type = 'triangle';
+    gainNode.gain.setValueAtTime(0.4, context.currentTime);
+
+    const now = context.currentTime;
+    oscillator.frequency.setValueAtTime(523.25, now); // C5
+    oscillator.frequency.setValueAtTime(659.25, now + 0.1); // E5
+    oscillator.frequency.setValueAtTime(783.99, now + 0.2); // G5
+    oscillator.frequency.setValueAtTime(1046.50, now + 0.3); // C6
+
+    gainNode.gain.exponentialRampToValueAtTime(0.00001, now + 0.7);
+    oscillator.start(now);
+    oscillator.stop(now + 0.7);
+};
+
 
 const StarAnimation: React.FC = () => (
     <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
         <div className="text-center text-white animate-reward-bounce">
-            <StarIcon className="w-32 h-32 text-yellow-400" />
+            <StarIcon className="w-32 h-32 text-yellow-400 animate-sparkle" />
             <p className="text-3xl font-bold mt-4">You earned a star!</p>
         </div>
     </div>
@@ -41,6 +85,7 @@ export const ChildMode: React.FC = () => {
     useEffect(() => {
         Object.values(routines).forEach(routine => {
             if (routine.tasks.length > 0 && routine.tasks.every(t => t.completed) && !completedRoutinesToday.includes(routine.id)) {
+                playStarEarnedSound();
                 dispatch({ type: 'AWARD_STAR_FOR_ROUTINE', payload: { routineId: routine.id } });
                 setShowStarAnimation(true);
                 setTimeout(() => setShowStarAnimation(false), 2000);
@@ -84,6 +129,29 @@ export const ChildMode: React.FC = () => {
                 .shadow-t-lg {
                     box-shadow: 0 -4px 6px -1px rgb(0 0 0 / 0.1), 0 -2px 4px -2px rgb(0 0 0 / 0.1);
                 }
+                @keyframes burst {
+                    0% {
+                        transform: translate(0, 0) rotate(0deg) scale(0.5);
+                        opacity: 1;
+                        background-color: var(--bg-color);
+                    }
+                    100% {
+                        transform:
+                            rotate(var(--angle))
+                            translateX(var(--distance))
+                            rotate(calc(-1 * var(--angle)))
+                            scale(0);
+                        opacity: 0;
+                        background-color: var(--bg-color);
+                    }
+                }
+                @keyframes sparkle {
+                    0%, 100% { transform: scale(1); filter: brightness(1.2); }
+                    50% { transform: scale(1.2); filter: brightness(1.8); }
+                }
+                .animate-sparkle {
+                    animation: sparkle 0.8s ease-in-out infinite;
+                }
                 `}
             </style>
             {showStarAnimation && <StarAnimation />}
@@ -99,12 +167,7 @@ export const ChildMode: React.FC = () => {
             </div>
             
             {currentRoutine && (
-                 <div className="w-full bg-white/50 rounded-full h-6 mb-8 shadow-inner overflow-hidden">
-                    <div 
-                        className="bg-green-400 h-6 rounded-full transition-all duration-500 ease-out"
-                        style={{ width: `${progress}%` }}
-                    ></div>
-                </div>
+                 <ThemedProgressBar progress={progress} themeColorClass={currentRoutine.theme.color} />
             )}
            
             {activeRoutine === 'Quests' || !currentRoutine ? <QuestView /> : <RoutineView key={currentRoutine.id} routine={currentRoutine} />}

@@ -9,35 +9,6 @@ if (!API_KEY) {
 
 const ai = new GoogleGenAI({ apiKey: API_KEY! });
 
-export const generateTaskImage = async (taskTitle: string): Promise<string | null> => {
-    if (!API_KEY) return null;
-
-    const prompt = `A cute, simple, and adorable 3D cartoon for a 4-year-old child, showing a happy kid '${taskTitle}'. Pixar style, vibrant colors, simple shapes, clean pastel background, no text, no shadows.`;
-
-    try {
-        const response = await ai.models.generateImages({
-            model: 'imagen-4.0-generate-001',
-            prompt: prompt,
-            config: {
-              numberOfImages: 1,
-              outputMimeType: 'image/png',
-              aspectRatio: '1:1',
-            },
-        });
-
-        if (response.generatedImages && response.generatedImages.length > 0) {
-            const base64ImageBytes: string = response.generatedImages[0].image.imageBytes;
-            return `data:image/png;base64,${base64ImageBytes}`;
-        }
-        return null;
-    } catch (error: any) {
-        const errorMessage = error.toString();
-        console.error(`Error generating image for "${taskTitle}":`, error.message);
-        // Re-throw the error so the calling component can implement logic like a circuit breaker.
-        throw error;
-    }
-};
-
 export const getAiSuggestions = async (timeOfDay: 'Morning' | 'After-School' | 'Bedtime', feeling: string): Promise<AiSuggestion[]> => {
     if (!API_KEY) {
         return Promise.resolve([

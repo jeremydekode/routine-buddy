@@ -73,10 +73,21 @@ export const QuestView: React.FC = () => {
 
     return (
         <div className="space-y-6">
+            <style>
+                {`
+                @keyframes sparkle {
+                    0%, 100% { transform: scale(1); filter: brightness(1.2); }
+                    50% { transform: scale(1.2); filter: brightness(1.8); }
+                }
+                .animate-sparkle-subtle {
+                    animation: sparkle 2s ease-in-out infinite;
+                }
+                `}
+            </style>
             <div className="text-center">
                  <p className="text-lg font-semibold text-slate-600">You have collected</p>
                  <div className="flex items-center justify-center gap-2 mt-1">
-                    <StarIcon className="w-10 h-10 text-yellow-400" />
+                    <StarIcon className="w-10 h-10 text-yellow-400 animate-sparkle-subtle" />
                     <span className="text-5xl font-bold text-slate-700">{starCount}</span>
                     <span className="text-2xl font-semibold text-slate-500">Stars!</span>
                  </div>

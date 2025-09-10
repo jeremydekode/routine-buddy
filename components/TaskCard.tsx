@@ -2,22 +2,93 @@ import React, { useState, useEffect } from 'react';
 import { useAppContext } from '../hooks/useAppContext';
 import { Task, ActiveRoutineId } from '../types';
 
+let audioContext: AudioContext | null = null;
+const getAudioContext = (): AudioContext | null => {
+    if (typeof window === 'undefined') return null;
+    if (!audioContext) {
+        try {
+            audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+        } catch (e) {
+            console.error("Web Audio API is not supported in this browser");
+            return null;
+        }
+    }
+    return audioContext;
+};
+
+
+const playTaskCompleteSound = () => {
+    const context = getAudioContext();
+    if (!context) return;
+    
+    if (context.state === 'suspended') {
+        context.resume();
+    }
+
+    const oscillator = context.createOscillator();
+    const gainNode = context.createGain();
+
+    oscillator.connect(gainNode);
+    gainNode.connect(context.destination);
+
+    oscillator.type = 'sine';
+    oscillator.frequency.setValueAtTime(880, context.currentTime); // A5 note
+    gainNode.gain.setValueAtTime(0.3, context.currentTime);
+
+    gainNode.gain.exponentialRampToValueAtTime(0.00001, context.currentTime + 0.3);
+    oscillator.start(context.currentTime);
+    oscillator.stop(context.currentTime + 0.3);
+};
+
+const ConfettiBurst: React.FC = () => (
+    <div className="absolute top-1/2 right-10 -translate-y-1/2 w-1 h-1 pointer-events-none z-10">
+        {Array.from({ length: 20 }).map((_, i) => {
+            const angle = Math.random() * 360;
+            const distance = 60 + Math.random() * 40;
+            const style = {
+                '--angle': `${angle}deg`,
+                '--distance': `${distance}px`,
+                '--bg-color': ['#fde68a', '#818cf8', '#f472b6', '#4ade80'][i % 4],
+                animation: `burst 0.8s ease-out forwards`,
+            } as React.CSSProperties;
+            return (
+                <i
+                    key={i}
+                    className="absolute w-2 h-3"
+                    style={style}
+                />
+            );
+        })}
+    </div>
+);
+
+
 interface TaskCardProps {
     task: Task;
     routineId: ActiveRoutineId;
 }
 
-const ImageLoadingSpinner: React.FC = () => (
-    <div className="absolute inset-0 bg-white/50 backdrop-blur-sm flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-400"></div>
-    </div>
-);
-
-
 export const TaskCard: React.FC<TaskCardProps> = ({ task, routineId }) => {
     const { dispatch } = useAppContext();
     const [timer, setTimer] = useState<number | null>(null);
     const [isTimerRunning, setIsTimerRunning] = useState(false);
+    const [showConfetti, setShowConfetti] = useState(false);
+    const [isBouncing, setIsBouncing] = useState(false);
+
+     useEffect(() => {
+        if (showConfetti) {
+            const timer = setTimeout(() => setShowConfetti(false), 1000);
+            return () => clearTimeout(timer);
+        }
+    }, [showConfetti]);
+
+    useEffect(() => {
+        if (isBouncing) {
+            const timer = setTimeout(() => setIsBouncing(false), 300); // Match animation duration
+            return () => clearTimeout(timer);
+        }
+    }, [isBouncing]);
+
 
     useEffect(() => {
         // FIX: The type `NodeJS.Timeout` is not available in browser environments. Switched to a compatible type.
@@ -30,15 +101,22 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, routineId }) => {
             setIsTimerRunning(false);
             setTimer(null);
             if (!task.completed) {
-                handleToggle();
+                playTaskCompleteSound();
+                setShowConfetti(true);
+                dispatch({ type: 'TOGGLE_TASK_COMPLETION', payload: { routineId, taskId: task.id } });
             }
         }
         return () => {
             if (interval) clearInterval(interval);
         };
-    }, [isTimerRunning, timer, task.completed]);
+    }, [isTimerRunning, timer, task.completed, dispatch, routineId, task.id]);
     
     const handleToggle = () => {
+        if (!task.completed) {
+            playTaskCompleteSound();
+            setShowConfetti(true);
+        }
+        setIsBouncing(true);
         dispatch({ type: 'TOGGLE_TASK_COMPLETION', payload: { routineId, taskId: task.id } });
     };
 
@@ -56,26 +134,29 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, routineId }) => {
     };
 
     const checkboxId = `task-${task.id}`;
-
-    const isLoading = typeof task.image === 'undefined';
-    const hasFailed = task.image === 'FAILED';
-    const hasImage = task.image && !hasFailed;
     
     const hasTimer = task.duration && task.duration > 0;
 
     return (
         <div
-            className={`flex items-center p-4 rounded-2xl shadow-lg transition-all duration-300 ${
+            className={`relative flex items-center p-4 rounded-2xl shadow-lg transition-all duration-300 ${
                 task.completed ? 'bg-green-100/80' : 'bg-white/80'
-            }`}
+            } ${isBouncing ? 'animate-bounce-short' : ''}`}
         >
-            <div className="w-20 h-20 bg-slate-100 rounded-lg mr-4 overflow-hidden relative flex-shrink-0 flex items-center justify-center">
-                {hasImage ? (
-                    <img src={task.image!} alt={task.title} className="w-full h-full object-cover" />
-                ) : (
-                    <span className="text-4xl" role="img" aria-label={task.title}>{task.icon}</span>
-                )}
-                {isLoading && <ImageLoadingSpinner />}
+            <style>
+                {`
+                @keyframes bounce-short {
+                    0%, 100% { transform: translateY(0) scale(1); }
+                    50% { transform: translateY(-6px) scale(1.02); }
+                }
+                .animate-bounce-short {
+                    animation: bounce-short 0.3s ease-out;
+                }
+                `}
+            </style>
+            {showConfetti && <ConfettiBurst />}
+            <div className="w-20 h-20 bg-slate-100 rounded-lg mr-4 flex-shrink-0 flex items-center justify-center">
+                <span className="text-4xl" role="img" aria-label={task.title}>{task.icon}</span>
             </div>
             <div className="flex-grow">
                 <h3 className={`font-bold text-lg text-slate-700 transition-colors ${task.completed ? 'line-through text-slate-400' : ''}`}>

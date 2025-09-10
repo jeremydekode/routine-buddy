@@ -15,7 +15,6 @@ export interface Task {
     description: string;
     icon: string; // emoji
     completed: boolean;
-    image?: string | 'FAILED'; // URL or base64 string, or 'FAILED'
     duration?: number; // Optional: duration in seconds for timed tasks
 }
 
@@ -69,7 +68,6 @@ export interface AppState {
     starCount: number;
     completedRoutinesToday: ActiveRoutineId[];
     lastCompletionDate: string; // YYYY-MM-DD
-    imageGenerationApiRateLimited: boolean;
     weeklyQuestPending: boolean;
     monthlyQuestPending: boolean;
     starAdjustmentLog: StarAdjustment[];
@@ -89,9 +87,7 @@ export type AppAction =
     | { type: 'UPDATE_ROUTINE_DAYS'; payload: { routineId: ActiveRoutineId; days: Day[] } }
     | { type: 'UPDATE_QUEST'; payload: { quest: Quest } }
     | { type: 'AWARD_STAR_FOR_ROUTINE'; payload: { routineId: ActiveRoutineId } }
-    | { type: 'SET_TASK_IMAGE'; payload: { routineId: ActiveRoutineId; taskId: string; imageUrl: string | 'FAILED' } }
     | { type: 'RESET_DAILY_STATE' }
-    | { type: 'SET_IMAGE_API_RATE_LIMITED' }
     | { type: 'REQUEST_QUEST_APPROVAL'; payload: { questId: QuestId } }
     | { type: 'APPROVE_QUEST'; payload: { questId: QuestId } }
     | { type: 'REJECT_QUEST'; payload: { questId: QuestId } }

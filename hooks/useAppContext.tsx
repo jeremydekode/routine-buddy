@@ -86,18 +86,6 @@ const appReducer = (state: AppState, action: AppAction): AppState => {
             saveState(newState);
             return newState;
         }
-        case 'SET_TASK_IMAGE': {
-            const { routineId, taskId, imageUrl } = action.payload;
-            const newRoutines = { ...state.routines };
-            const routine = newRoutines[routineId];
-            const taskIndex = routine.tasks.findIndex(t => t.id === taskId);
-            if (taskIndex > -1) {
-                const newTasks = [...routine.tasks];
-                newTasks[taskIndex] = { ...newTasks[taskIndex], image: imageUrl };
-                newRoutines[routineId] = { ...routine, tasks: newTasks };
-            }
-            return { ...state, routines: newRoutines };
-        }
         case 'RESET_DAILY_STATE': {
             const newRoutines = { ...state.routines };
             for (const key in newRoutines) {
@@ -116,9 +104,6 @@ const appReducer = (state: AppState, action: AppAction): AppState => {
             saveState(newState);
             return newState;
         }
-        case 'SET_IMAGE_API_RATE_LIMITED':
-            return { ...state, imageGenerationApiRateLimited: true };
-        
         case 'REQUEST_QUEST_APPROVAL': {
             const { questId } = action.payload;
             newState = questId === 'weekly' ? { ...state, weeklyQuestPending: true } : { ...state, monthlyQuestPending: true };
@@ -199,7 +184,6 @@ const rehydrateState = (loadedState: any): AppState => {
             loadedState.routines[routineId].theme = INITIAL_ROUTINES[routineId].theme;
         }
     }
-    loadedState.imageGenerationApiRateLimited = false;
     loadedState.showPasswordModal = false;
     loadedState.passwordIsSet = !!localStorage.getItem(PASSWORD_KEY);
     return loadedState;
@@ -237,20 +221,12 @@ const serializeStateForSaving = (state: AppState) => {
         routines: Object.fromEntries(
             Object.entries(state.routines).map(([routineId, routine]) => {
                 const { theme, ...serializableRoutine } = routine;
-                return [routineId, {
-                    ...serializableRoutine,
-                    tasks: routine.tasks.map(task => {
-                        const { image, ...rest } = task;
-                        return rest;
-                    }),
-                }];
+                return [routineId, serializableRoutine];
             })
         ),
         showPasswordModal: undefined,
-        imageGenerationApiRateLimited: undefined,
     };
     delete stateToSave.showPasswordModal;
-    delete stateToSave.imageGenerationApiRateLimited;
     return stateToSave;
 };
 
@@ -280,7 +256,6 @@ const getDefaultState = (): AppState => ({
     starCount: 0,
     completedRoutinesToday: [],
     lastCompletionDate: new Date().toISOString().split('T')[0],
-    imageGenerationApiRateLimited: false,
     weeklyQuestPending: false,
     monthlyQuestPending: false,
     starAdjustmentLog: [],
