@@ -295,15 +295,6 @@ const AppContext = createContext<{ state: AppState; dispatch: Dispatch<AppAction
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [state, dispatch] = useReducer(appReducer, getInitialState());
 
-    // ADD: debounce helper so we don’t spam the DB
-const saveTimer = useRef<number | null>(null);
-const debouncedSave = (payload: any, delay = 800) => {
-  if (saveTimer.current) window.clearTimeout(saveTimer.current);
-  // @ts-ignore
-  saveTimer.current = window.setTimeout(() => saveCloudState(payload).catch(console.error), delay);
-};
-
-
     useEffect(() => {
         const today = new Date().toISOString().split('T')[0];
         if (state.lastCompletionDate !== today) {
