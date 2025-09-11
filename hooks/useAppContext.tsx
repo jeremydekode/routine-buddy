@@ -205,30 +205,32 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         dispatch({ type: 'SET_LOADING', payload: true });
         try {
             const profile = await getUserProfile();
-            if (profile?.app_state) {
-                const remoteState = profile.app_state as Partial<AppState>;
+            const remoteState = profile?.app_state as Partial<AppState> | null;
 
+            // Data validation: Check if the fetched state has the essential structures.
+            // If not, it's either a new user or the data is malformed/outdated.
+            if (remoteState && remoteState.routines && remoteState.quests) {
                 // Restore non-persisted React components like icons.
-                if (remoteState.routines) {
-                    Object.keys(remoteState.routines).forEach(key => {
-                        const routineId = key as ActiveRoutineId;
-                        const remoteRoutine = remoteState.routines![routineId];
-                        const initialRoutine = INITIAL_ROUTINES[routineId];
+                Object.keys(remoteState.routines).forEach(key => {
+                    const routineId = key as ActiveRoutineId;
+                    const remoteRoutine = remoteState.routines![routineId];
+                    const initialRoutine = INITIAL_ROUTINES[routineId];
 
-                        if (remoteRoutine && initialRoutine) {
-                            remoteRoutine.theme = initialRoutine.theme;
-                        }
-                    });
-                }
-                dispatch({ type: 'SET_STATE', payload: remoteState });
+                    if (remoteRoutine && initialRoutine) {
+                        remoteRoutine.theme = initialRoutine.theme;
+                    }
+                });
+                dispatch({ type: 'SET_STATE', payload: { ...remoteState, isLoggedIn: true } });
             } else {
-                // No profile found, could be a new user. Use initial state but stop loading.
-                dispatch({ type: 'SET_LOADING', payload: false });
+                // This branch handles new users OR users with corrupted data.
+                // We set the initial state but keep them logged in.
+                // The next save operation will create/overwrite their profile with a clean state.
+                console.log("No valid remote state found. Initializing with default state.");
+                dispatch({ type: 'SET_STATE', payload: { ...initialState, isLoggedIn: true, isLoading: false } });
             }
         } catch (error) {
-            console.error("Failed to load or parse remote state. Resetting to default state.", error);
-            // If anything goes wrong, treat it as data corruption and reset the state to default
-            // while keeping the user logged in. This will overwrite the bad data on the next save.
+            console.error("Critical error during state loading. Resetting to default state.", error);
+            // This is a fallback for unexpected errors (e.g., network failure).
             dispatch({ type: 'SET_STATE', payload: { ...initialState, isLoggedIn: true, isLoading: false } });
         }
     }, []);
@@ -241,12 +243,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
         const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
             if (session?.user) {
+                // loadStateFromRemote now handles all logic for setting state after login,
+                // including isLoggedIn and isLoading flags.
                 await loadStateFromRemote();
-                dispatch({ type: 'SET_LOGGED_IN', payload: true });
-            } else if (event === 'SIGNED_OUT') {
-                dispatch({ type: 'SET_STATE', payload: {...initialState, isLoading: false, isLoggedIn: false} });
             } else {
-                dispatch({ type: 'SET_LOGGED_IN', payload: false });
+                // This handles sign out and initial load without a session.
+                dispatch({ type: 'SET_STATE', payload: {...initialState, isLoading: false, isLoggedIn: false} });
             }
         });
         
