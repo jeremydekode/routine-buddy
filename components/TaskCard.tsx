@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+
+import * as React from 'react';
 import { useAppContext } from '../hooks/useAppContext';
 import { Task, ActiveRoutineId } from '../types';
 import { SpeakerIcon } from './icons/Icons';
@@ -72,24 +73,24 @@ interface TaskCardProps {
 
 export const TaskCard: React.FC<TaskCardProps> = ({ task, routineId, selectedDate }) => {
     const { state, dispatch } = useAppContext();
-    const [timer, setTimer] = useState<number | null>(null);
-    const [isTimerRunning, setIsTimerRunning] = useState(false);
-    const [showConfetti, setShowConfetti] = useState(false);
-    const [isBouncing, setIsBouncing] = useState(false);
+    const [timer, setTimer] = React.useState<number | null>(null);
+    const [isTimerRunning, setIsTimerRunning] = React.useState(false);
+    const [showConfetti, setShowConfetti] = React.useState(false);
+    const [isBouncing, setIsBouncing] = React.useState(false);
     
     const today = new Date().toISOString().split('T')[0];
     const isReadOnly = selectedDate !== today;
 
     const isCompleted = state.taskHistory[selectedDate]?.includes(task.id) ?? false;
 
-     useEffect(() => {
+     React.useEffect(() => {
         if (showConfetti) {
             const timer = setTimeout(() => setShowConfetti(false), 1000);
             return () => clearTimeout(timer);
         }
     }, [showConfetti]);
 
-    useEffect(() => {
+    React.useEffect(() => {
         if (isBouncing) {
             const timer = setTimeout(() => setIsBouncing(false), 300); // Match animation duration
             return () => clearTimeout(timer);
@@ -97,7 +98,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, routineId, selectedDat
     }, [isBouncing]);
 
 
-    useEffect(() => {
+    React.useEffect(() => {
         let interval: ReturnType<typeof setInterval> | null = null;
         if (isTimerRunning && timer !== null && timer > 0) {
             interval = setInterval(() => {

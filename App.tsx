@@ -1,4 +1,5 @@
-import React from 'react';
+
+import * as React from 'react';
 import { ParentMode } from './components/ParentMode';
 import { ChildMode } from './components/ChildMode';
 import { useAppContext } from './hooks/useAppContext';

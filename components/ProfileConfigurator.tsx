@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import * as React from 'react';
 import { useAppContext, PASSWORD_KEY } from '../hooks/useAppContext';
 import { PinSetupModal } from './PinSetupModal';
 import { ToggleSwitch } from './ToggleSwitch';
@@ -30,8 +31,8 @@ export const ProfileConfigurator: React.FC<ProfileConfiguratorProps> = ({
     enableCharacterQuests, onEnableCharacterQuestsChange
 }) => {
     const { state, dispatch } = useAppContext();
-    const [isPinModalOpen, setIsPinModalOpen] = useState(false);
-    const [isChangingPin, setIsChangingPin] = useState(false);
+    const [isPinModalOpen, setIsPinModalOpen] = React.useState(false);
+    const [isChangingPin, setIsChangingPin] = React.useState(false);
 
     const handleOpenSetPinModal = () => {
         setIsChangingPin(false);

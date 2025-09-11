@@ -1,4 +1,5 @@
-import React, { useMemo, useState } from 'react';
+
+import * as React from 'react';
 import { useAppContext } from '../hooks/useAppContext';
 import { StarIcon } from './icons/Icons';
 import { ActiveRoutineId, QuestId, DAYS_OF_WEEK } from '../types';
@@ -72,10 +73,10 @@ export const ParentDashboard: React.FC = () => {
     const { state, dispatch } = useAppContext();
     const { routines, starCount, weeklyQuestPending, monthlyQuestPending, starAdjustmentLog, taskHistory, pendingRoutineApprovals } = state;
 
-    const [adjustmentAmount, setAdjustmentAmount] = useState('');
-    const [adjustmentReason, setAdjustmentReason] = useState('');
+    const [adjustmentAmount, setAdjustmentAmount] = React.useState('');
+    const [adjustmentReason, setAdjustmentReason] = React.useState('');
 
-    const stats = useMemo(() => {
+    const stats = React.useMemo(() => {
         const todayStr = new Date().toISOString().split('T')[0];
         const todayDay = DAYS_OF_WEEK[new Date().getUTCDay()];
         

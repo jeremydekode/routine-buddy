@@ -1,4 +1,5 @@
-import React, { useMemo } from 'react';
+
+import * as React from 'react';
 import { Routine, Day, DAYS_OF_WEEK } from '../types';
 import { TaskCard } from './TaskCard';
 import { useAppContext } from '../hooks/useAppContext';
@@ -27,19 +28,19 @@ const CompletedStamp: React.FC<{ isPending: boolean }> = ({ isPending }) => (
 export const RoutineView: React.FC<RoutineViewProps> = ({ routine, selectedDate }) => {
     const { state } = useAppContext();
     const { taskHistory, pendingRoutineApprovals } = state;
-    const selectedDay = useMemo(() => DAYS_OF_WEEK[new Date(selectedDate).getUTCDay()], [selectedDate]);
+    const selectedDay = React.useMemo(() => DAYS_OF_WEEK[new Date(selectedDate).getUTCDay()], [selectedDate]);
     
     if (!routine) return null;
 
     const tasksForSelectedDay = routine.tasks.filter(task => task.days.includes(selectedDay));
     
-    const isCompleted = useMemo(() => {
+    const isCompleted = React.useMemo(() => {
         if (tasksForSelectedDay.length === 0) return false;
         const completedTasks = taskHistory[selectedDate] || [];
         return tasksForSelectedDay.every(task => completedTasks.includes(task.id));
     }, [tasksForSelectedDay, taskHistory, selectedDate]);
 
-    const isPending = useMemo(() => {
+    const isPending = React.useMemo(() => {
         return pendingRoutineApprovals.some(p => p.routineId === routine.id && p.date === selectedDate);
     }, [pendingRoutineApprovals, routine.id, selectedDate]);
 

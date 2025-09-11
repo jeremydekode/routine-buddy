@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useReducer, useEffect } from 'react';
+
+import * as React from 'react';
 import { AppState, AppAction, Mode, QuestId, ActiveRoutineId, Day } from '../types';
 import { INITIAL_ROUTINES, INITIAL_QUESTS } from '../constants';
 
@@ -174,12 +175,12 @@ const appReducer = (state: AppState, action: AppAction): AppState => {
     }
 };
 
-const AppContext = createContext<{ state: AppState; dispatch: React.Dispatch<AppAction> } | undefined>(undefined);
+const AppContext = React.createContext<{ state: AppState; dispatch: React.Dispatch<AppAction> } | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const [state, dispatch] = useReducer(appReducer, initialState);
+    const [state, dispatch] = React.useReducer(appReducer, initialState);
 
-    useEffect(() => {
+    React.useEffect(() => {
         try {
             const storedState = localStorage.getItem(APP_STATE_KEY);
             if (storedState) {
@@ -202,7 +203,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         }
     }, []);
 
-    useEffect(() => {
+    React.useEffect(() => {
         try {
             // Create a deep copy of the state to modify before saving
             const stateToSave = JSON.parse(JSON.stringify(state));
@@ -229,7 +230,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 };
 
 export const useAppContext = () => {
-    const context = useContext(AppContext);
+    const context = React.useContext(AppContext);
     if (context === undefined) {
         throw new Error('useAppContext must be used within an AppProvider');
     }

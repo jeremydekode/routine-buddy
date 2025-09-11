@@ -1,4 +1,5 @@
-import React, { useState, useRef, useEffect } from 'react';
+
+import * as React from 'react';
 
 interface ImageEditorModalProps {
     isOpen: boolean;
@@ -8,18 +9,18 @@ interface ImageEditorModalProps {
 }
 
 export const ImageEditorModal: React.FC<ImageEditorModalProps> = ({ isOpen, onClose, onSave, imageSrc }) => {
-    const canvasRef = useRef<HTMLCanvasElement>(null);
-    const imageRef = useRef<HTMLImageElement>(new Image());
-    const containerRef = useRef<HTMLDivElement>(null);
+    const canvasRef = React.useRef<HTMLCanvasElement>(null);
+    const imageRef = React.useRef<HTMLImageElement>(new Image());
+    const containerRef = React.useRef<HTMLDivElement>(null);
     
-    const [zoom, setZoom] = useState(1);
-    const [offset, setOffset] = useState({ x: 0, y: 0 });
-    const [isDragging, setIsDragging] = useState(false);
-    const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+    const [zoom, setZoom] = React.useState(1);
+    const [offset, setOffset] = React.useState({ x: 0, y: 0 });
+    const [isDragging, setIsDragging] = React.useState(false);
+    const [dragStart, setDragStart] = React.useState({ x: 0, y: 0 });
 
     const CROP_SIZE = 300; // The size of the canvas and crop area
 
-    useEffect(() => {
+    React.useEffect(() => {
         const image = imageRef.current;
         image.src = imageSrc;
         image.onload = () => {

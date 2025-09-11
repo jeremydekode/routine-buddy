@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react';
+
+import * as React from 'react';
 import { useAppContext } from '../hooks/useAppContext';
 import { GamepadIcon } from './icons/Icons';
 
@@ -41,18 +42,18 @@ export const PlaytimeView: React.FC = () => {
     const { state, dispatch } = useAppContext();
     const { playtimeDuration, playtimeStarted } = state;
 
-    const totalSeconds = useMemo(() => playtimeDuration * 60, [playtimeDuration]);
-    const [secondsLeft, setSecondsLeft] = useState(totalSeconds);
-    const [isTimerActive, setIsTimerActive] = useState(false);
+    const totalSeconds = React.useMemo(() => playtimeDuration * 60, [playtimeDuration]);
+    const [secondsLeft, setSecondsLeft] = React.useState(totalSeconds);
+    const [isTimerActive, setIsTimerActive] = React.useState(false);
 
-    useEffect(() => {
+    React.useEffect(() => {
         // If playtime was already started today, resume the timer.
         if (playtimeStarted) {
             setIsTimerActive(true);
         }
     }, [playtimeStarted]);
 
-    useEffect(() => {
+    React.useEffect(() => {
         let interval: ReturnType<typeof setInterval> | null = null;
         if (isTimerActive && secondsLeft > 0) {
             interval = setInterval(() => {

@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import * as React from 'react';
 import { CharacterQuest } from '../types';
 import { PlusIcon, TrashIcon, PencilIcon, HeartIcon } from './icons/Icons';
 import { CharacterQuestEditorModal } from './CharacterQuestEditorModal';
@@ -10,8 +11,8 @@ interface CharacterQuestConfiguratorProps {
 }
 
 export const CharacterQuestConfigurator: React.FC<CharacterQuestConfiguratorProps> = ({ quests, onQuestsChange }) => {
-    const [isEditorOpen, setIsEditorOpen] = useState(false);
-    const [questToEdit, setQuestToEdit] = useState<CharacterQuest | null>(null);
+    const [isEditorOpen, setIsEditorOpen] = React.useState(false);
+    const [questToEdit, setQuestToEdit] = React.useState<CharacterQuest | null>(null);
 
     const handleOpenEditorForNew = () => {
         setQuestToEdit(null);

@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+
+import * as React from 'react';
 import { useAppContext, PASSWORD_KEY } from '../hooks/useAppContext';
 
 export const PasswordModal: React.FC = () => {
     const { dispatch } = useAppContext();
-    const [pin, setPin] = useState('');
-    const [error, setError] = useState('');
+    const [pin, setPin] = React.useState('');
+    const [error, setError] = React.useState('');
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();

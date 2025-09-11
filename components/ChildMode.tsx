@@ -1,4 +1,5 @@
-import React, { useState, useMemo, useRef, useEffect } from 'react';
+
+import * as React from 'react';
 import { useAppContext } from '../hooks/useAppContext';
 import { RoutineView } from './RoutineView';
 import { QuestView } from './QuestView';
@@ -33,16 +34,16 @@ const NavItem = React.forwardRef<HTMLButtonElement, NavItemProps>(
 export const ChildMode: React.FC = () => {
     const { state, dispatch } = useAppContext();
     const { activeRoutine, routines, selectedDate, taskHistory, enableMorning, enableAfterSchool, enableBedtime, enablePlaytime, childName } = state;
-    const [isCalendarOpen, setIsCalendarOpen] = useState(false);
-    const navRef = useRef<HTMLElement>(null);
-    const itemRefs = useRef<Record<string, HTMLButtonElement | null>>({});
-    const [pillStyle, setPillStyle] = useState({ left: 0, width: 0, opacity: 0 });
+    const [isCalendarOpen, setIsCalendarOpen] = React.useState(false);
+    const navRef = React.useRef<HTMLElement>(null);
+    const itemRefs = React.useRef<Record<string, HTMLButtonElement | null>>({});
+    const [pillStyle, setPillStyle] = React.useState({ left: 0, width: 0, opacity: 0 });
     
-    const today = useMemo(() => new Date().toISOString().split('T')[0], []);
+    const today = React.useMemo(() => new Date().toISOString().split('T')[0], []);
 
     const selectedRoutine = (routines as Record<ActiveRoutineId, any>)[activeRoutine as ActiveRoutineId];
     
-    const isBedtimeComplete = useMemo(() => {
+    const isBedtimeComplete = React.useMemo(() => {
         if (!enableBedtime) return false;
         
         const bedtimeRoutine = routines['Bedtime'];
@@ -85,7 +86,7 @@ export const ChildMode: React.FC = () => {
         enablePlaytime && isBedtimeComplete && { id: 'Playtime', ...PLAYTIME_THEME },
     ].filter(Boolean) as (typeof routines[ActiveRoutineId] & { id: ActiveView, theme: any })[];
 
-    useEffect(() => {
+    React.useEffect(() => {
         const activeItemEl = itemRefs.current[activeRoutine];
         if (activeItemEl) {
             const { offsetLeft, offsetWidth } = activeItemEl;
@@ -97,7 +98,7 @@ export const ChildMode: React.FC = () => {
         }
     }, [activeRoutine, navItems]);
 
-    const formattedDate = useMemo(() => {
+    const formattedDate = React.useMemo(() => {
         return new Date(selectedDate.replace(/-/g, '/')).toLocaleDateString(undefined, {
             weekday: 'long',
             month: 'long',

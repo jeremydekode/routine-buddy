@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+
+import * as React from 'react';
 import { PASSWORD_KEY } from '../hooks/useAppContext';
 
 interface PinSetupModalProps {
@@ -9,12 +10,12 @@ interface PinSetupModalProps {
 }
 
 export const PinSetupModal: React.FC<PinSetupModalProps> = ({ isOpen, onClose, onSave, isChanging }) => {
-    const [currentPin, setCurrentPin] = useState('');
-    const [newPin, setNewPin] = useState('');
-    const [confirmPin, setConfirmPin] = useState('');
-    const [error, setError] = useState('');
+    const [currentPin, setCurrentPin] = React.useState('');
+    const [newPin, setNewPin] = React.useState('');
+    const [confirmPin, setConfirmPin] = React.useState('');
+    const [error, setError] = React.useState('');
 
-    useEffect(() => {
+    React.useEffect(() => {
         if (isOpen) {
             // Reset state when modal opens
             setCurrentPin('');

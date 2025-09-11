@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+
+import * as React from 'react';
 import { ParentDashboard } from './ParentDashboard';
 import { AiSuggestions } from './AiSuggestions';
 import { RoutineConfigurator } from './RoutineConfigurator';
@@ -25,9 +26,9 @@ type ParentTab = 'Dashboard' | 'AI Suggestions' | 'Routines' | 'Quests' | 'Chara
 
 export const ParentMode: React.FC = () => {
     const { state, dispatch } = useAppContext();
-    const [activeTab, setActiveTab] = useState<ParentTab>('Dashboard');
+    const [activeTab, setActiveTab] = React.useState<ParentTab>('Dashboard');
 
-    const [draftState, setDraftState] = useState<DraftState>(() => ({
+    const [draftState, setDraftState] = React.useState<DraftState>(() => ({
         routines: state.routines,
         quests: state.quests,
         childName: state.childName,
@@ -39,12 +40,12 @@ export const ParentMode: React.FC = () => {
         enableCharacterQuests: state.enableCharacterQuests,
         characterQuests: state.characterQuests,
     }));
-    const [isDirty, setIsDirty] = useState(false);
+    const [isDirty, setIsDirty] = React.useState(false);
 
     // This effect synchronizes the local draft state with the global state.
     // It runs when the global state changes (e.g., after a save) or when the user discards changes.
     // The `!isDirty` check is crucial to prevent overwriting the user's edits while they are typing.
-    useEffect(() => {
+    React.useEffect(() => {
         if (!isDirty) {
             setDraftState({
                 routines: state.routines,

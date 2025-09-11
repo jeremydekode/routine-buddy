@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+
+import * as React from 'react';
 import { CharacterQuest, CharacterQuestCategory } from '../types';
 import { CHARACTER_QUEST_CATEGORIES, CATEGORY_ICONS } from '../constants';
 
@@ -10,11 +11,11 @@ interface CharacterQuestEditorModalProps {
 }
 
 export const CharacterQuestEditorModal: React.FC<CharacterQuestEditorModalProps> = ({ isOpen, onClose, onSave, questToEdit }) => {
-    const [title, setTitle] = useState('');
-    const [category, setCategory] = useState<CharacterQuestCategory>('Kindness');
-    const [goal, setGoal] = useState('5');
+    const [title, setTitle] = React.useState('');
+    const [category, setCategory] = React.useState<CharacterQuestCategory>('Kindness');
+    const [goal, setGoal] = React.useState('5');
 
-    useEffect(() => {
+    React.useEffect(() => {
         if (isOpen) {
             if (questToEdit) {
                 setTitle(questToEdit.title);

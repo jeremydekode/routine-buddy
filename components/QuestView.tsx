@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import * as React from 'react';
 import { useAppContext } from '../hooks/useAppContext';
 import { Quest } from '../types';
 import { StarIcon, HeartIcon } from './icons/Icons';
@@ -116,7 +117,7 @@ const StarQuests: React.FC = () => {
 export const QuestView: React.FC = () => {
     const { state } = useAppContext();
     const { enableCharacterQuests } = state;
-    const [activeQuestTab, setActiveQuestTab] = useState<'stars' | 'character'>('stars');
+    const [activeQuestTab, setActiveQuestTab] = React.useState<'stars' | 'character'>('stars');
 
     const TabButton: React.FC<{
         label: string;

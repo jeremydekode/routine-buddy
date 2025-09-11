@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+
+import * as React from 'react';
 import { Task, Day, DAYS_OF_WEEK } from '../types';
 
 interface TaskEditorModalProps {
@@ -12,13 +13,13 @@ interface TaskEditorModalProps {
 const ICON_OPTIONS = ['🌟', '🧸', '🍎', '🦷', '👕', '🛏️', '📖', '👚', '👟', '🧼', '🍽️', '🎨', '🧩', '🚲', '🥕', '💧', '☀️', '🌙', '❤️', '👍', '🥦', '🛁', '🎒', '🐶'];
 
 export const TaskEditorModal: React.FC<TaskEditorModalProps> = ({ isOpen, onClose, onSave, taskToEdit, routineId }) => {
-    const [title, setTitle] = useState('');
-    const [description, setDescription] = useState('');
-    const [icon, setIcon] = useState('🌟');
-    const [duration, setDuration] = useState('');
-    const [days, setDays] = useState<Day[]>([...DAYS_OF_WEEK]);
+    const [title, setTitle] = React.useState('');
+    const [description, setDescription] = React.useState('');
+    const [icon, setIcon] = React.useState('🌟');
+    const [duration, setDuration] = React.useState('');
+    const [days, setDays] = React.useState<Day[]>([...DAYS_OF_WEEK]);
 
-    useEffect(() => {
+    React.useEffect(() => {
         if (isOpen) {
             if (taskToEdit) {
                 setTitle(taskToEdit.title);

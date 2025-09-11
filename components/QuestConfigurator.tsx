@@ -1,4 +1,5 @@
-import React from 'react';
+
+import * as React from 'react';
 import { Quest } from '../types';
 import { TrophyIcon } from './icons/Icons';
 

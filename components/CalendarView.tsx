@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import * as React from 'react';
 import { useAppContext } from '../hooks/useAppContext';
 import { ChevronLeftIcon, ChevronRightIcon } from './icons/Icons';
 
@@ -10,7 +11,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onClose }) => {
     const { state, dispatch } = useAppContext();
     const { selectedDate, taskHistory } = state;
     // Initialize based on the globally selected date to stay in sync
-    const [currentMonth, setCurrentMonth] = useState(new Date(selectedDate.replace(/-/g, '/')));
+    const [currentMonth, setCurrentMonth] = React.useState(new Date(selectedDate.replace(/-/g, '/')));
     
     const today = new Date();
     today.setHours(0, 0, 0, 0);

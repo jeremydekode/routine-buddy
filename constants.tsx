@@ -1,4 +1,5 @@
-import React from 'react';
+
+import * as React from 'react';
 import { SunIcon, CloudIcon, MoonIcon, StarIcon, GamepadIcon, HeartIcon, KindnessIcon, HourglassIcon, ResponsibilityIcon } from './components/icons/Icons';
 import { Routine, ActiveRoutineId, Quest, DAYS_OF_WEEK, Day, CharacterQuestCategory } from './types';
 

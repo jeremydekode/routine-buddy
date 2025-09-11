@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import * as React from 'react';
 import { ActiveRoutineId, Routine, Task } from '../types';
 import { PlusIcon, TrashIcon, PencilIcon } from './icons/Icons';
 import { TaskEditorModal } from './TaskEditorModal';
@@ -9,11 +10,11 @@ interface RoutineConfiguratorProps {
 }
 
 export const RoutineConfigurator: React.FC<RoutineConfiguratorProps> = ({ routines, onRoutinesChange }) => {
-    const [selectedRoutine, setSelectedRoutine] = useState<ActiveRoutineId>('Morning');
+    const [selectedRoutine, setSelectedRoutine] = React.useState<ActiveRoutineId>('Morning');
     
     // State for the editor modal
-    const [isEditorOpen, setIsEditorOpen] = useState(false);
-    const [taskToEdit, setTaskToEdit] = useState<Task | null>(null);
+    const [isEditorOpen, setIsEditorOpen] = React.useState(false);
+    const [taskToEdit, setTaskToEdit] = React.useState<Task | null>(null);
 
     const routine = routines[selectedRoutine];
 

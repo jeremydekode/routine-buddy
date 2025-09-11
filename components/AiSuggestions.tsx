@@ -1,4 +1,5 @@
-import React, { useState, useCallback, useEffect } from 'react';
+
+import * as React from 'react';
 import { getAiSuggestions } from '../services/geminiService';
 import { AiSuggestion } from '../types';
 
@@ -34,13 +35,13 @@ const SuggestionCard: React.FC<{ suggestion: AiSuggestion }> = ({ suggestion }) 
 };
 
 export const AiSuggestions: React.FC = () => {
-    const [suggestions, setSuggestions] = useState<AiSuggestion[]>([]);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-    const [timeOfDay, setTimeOfDay] = useState<'Morning' | 'After-School' | 'Bedtime'>('After-School');
-    const [feeling, setFeeling] = useState('Happy');
+    const [suggestions, setSuggestions] = React.useState<AiSuggestion[]>([]);
+    const [loading, setLoading] = React.useState(false);
+    const [error, setError] = React.useState<string | null>(null);
+    const [timeOfDay, setTimeOfDay] = React.useState<'Morning' | 'After-School' | 'Bedtime'>('After-School');
+    const [feeling, setFeeling] = React.useState('Happy');
 
-    const fetchSuggestions = useCallback(async () => {
+    const fetchSuggestions = React.useCallback(async () => {
         setLoading(true);
         setError(null);
         try {
@@ -54,7 +55,7 @@ export const AiSuggestions: React.FC = () => {
         }
     }, [timeOfDay, feeling]);
 
-    useEffect(() => {
+    React.useEffect(() => {
         fetchSuggestions();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);

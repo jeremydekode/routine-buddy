@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import * as React from 'react';
 import { useAppContext } from '../hooks/useAppContext';
 import { CharacterQuest } from '../types';
 import { CATEGORY_ICONS } from '../constants';
@@ -15,7 +16,7 @@ const QuestCompleteAnimation: React.FC = () => (
 
 const CharacterQuestCard: React.FC<{ quest: CharacterQuest }> = ({ quest }) => {
     const { dispatch } = useAppContext();
-    const [isAnimating, setIsAnimating] = useState(false);
+    const [isAnimating, setIsAnimating] = React.useState(false);
     const today = new Date().toISOString().split('T')[0];
     const isCompletedToday = quest.lastCompletedDate === today;
 
