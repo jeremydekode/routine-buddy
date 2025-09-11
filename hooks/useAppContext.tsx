@@ -203,51 +203,48 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     const loadStateFromRemote = React.useCallback(async () => {
         dispatch({ type: 'SET_LOADING', payload: true });
-        const profile = await getUserProfile();
-        if (profile?.app_state) {
-            const remoteState = profile.app_state as Partial<AppState>;
+        try {
+            const profile = await getUserProfile();
+            if (profile?.app_state) {
+                const remoteState = profile.app_state as Partial<AppState>;
 
-            // Restore non-persisted React components like icons.
-            if (remoteState.routines) {
-                Object.keys(remoteState.routines).forEach(key => {
-                    const routineId = key as ActiveRoutineId;
-                    const remoteRoutine = remoteState.routines![routineId];
-                    const initialRoutine = INITIAL_ROUTINES[routineId];
+                // Restore non-persisted React components like icons.
+                if (remoteState.routines) {
+                    Object.keys(remoteState.routines).forEach(key => {
+                        const routineId = key as ActiveRoutineId;
+                        const remoteRoutine = remoteState.routines![routineId];
+                        const initialRoutine = INITIAL_ROUTINES[routineId];
 
-                    // If a routine from DB matches one from our constants, restore its static theme object.
-                    // This brings back the icon and ensures the color is correct, while keeping user's tasks.
-                    if (remoteRoutine && initialRoutine) {
-                         remoteRoutine.theme = initialRoutine.theme;
-                    }
-                });
+                        if (remoteRoutine && initialRoutine) {
+                            remoteRoutine.theme = initialRoutine.theme;
+                        }
+                    });
+                }
+                dispatch({ type: 'SET_STATE', payload: remoteState });
+            } else {
+                // No profile found, could be a new user. Use initial state but stop loading.
+                dispatch({ type: 'SET_LOADING', payload: false });
             }
-
-            dispatch({ type: 'SET_STATE', payload: remoteState });
-        } else {
-            // No profile found, could be a new user. Use initial state.
+        } catch (error) {
+            console.error("Failed to load or parse remote state:", error);
+            // If anything goes wrong, stop loading and fall back to the default state.
             dispatch({ type: 'SET_LOADING', payload: false });
         }
     }, []);
     
     React.useEffect(() => {
-        // If supabase is not configured, stop loading and stay logged out.
         if (!supabase) {
             dispatch({ type: 'SET_LOGGED_IN', payload: false });
             return;
         }
-        
-        dispatch({ type: 'SET_LOADING', payload: true });
 
         const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
             if (session?.user) {
-                // This covers SIGNED_IN and INITIAL_SESSION with a user
                 await loadStateFromRemote();
                 dispatch({ type: 'SET_LOGGED_IN', payload: true });
             } else if (event === 'SIGNED_OUT') {
-                // User signed out. Reset state completely to clear all data.
                 dispatch({ type: 'SET_STATE', payload: {...initialState, isLoading: false, isLoggedIn: false} });
             } else {
-                // This covers INITIAL_SESSION without a user
                 dispatch({ type: 'SET_LOGGED_IN', payload: false });
             }
         });
@@ -262,33 +259,27 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const stringifiedPersistableState = JSON.stringify(persistableState);
 
     React.useEffect(() => {
-        // Do not sync if not logged in or if the app is still loading initial state.
         if (!isLoggedIn || isLoading) {
             return;
         }
 
         const handler = setTimeout(() => {
-            // Create a deep copy of the state to avoid mutating the live state.
             const stateToPersist = JSON.parse(stringifiedPersistableState);
 
-            // Rebuild the 'theme' object for each routine to ensure it only contains
-            // serializable data. This is more robust than deleting properties, which
-            // was causing "Failed to fetch" errors.
             if (stateToPersist.routines) {
                 Object.keys(stateToPersist.routines).forEach(key => {
                     const routineId = key as ActiveRoutineId;
                     const routine = stateToPersist.routines[routineId];
-                    const originalRoutine = state.routines[routineId]; // Get from the live state
+                    const originalRoutine = state.routines[routineId];
                     
                     if (routine && originalRoutine?.theme) {
-                        // Reconstruct the theme object, keeping only the serializable color property.
                         routine.theme = { color: originalRoutine.theme.color };
                     }
                 });
             }
 
             updateUserProfile(stateToPersist);
-        }, 1500); // Debounce updates by 1.5 seconds
+        }, 1500);
 
         return () => {
             clearTimeout(handler);
