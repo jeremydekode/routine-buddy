@@ -1,7 +1,6 @@
 
 import * as React from 'react';
-import { useAppContext, PASSWORD_KEY } from '../hooks/useAppContext';
-import { PinSetupModal } from './PinSetupModal';
+import { signOut } from '../services/supabase';
 import { ToggleSwitch } from './ToggleSwitch';
 
 interface ProfileConfiguratorProps {
@@ -30,27 +29,10 @@ export const ProfileConfigurator: React.FC<ProfileConfiguratorProps> = ({
     enableBedtime, onEnableBedtimeChange,
     enableCharacterQuests, onEnableCharacterQuestsChange
 }) => {
-    const { state, dispatch } = useAppContext();
-    const [isPinModalOpen, setIsPinModalOpen] = React.useState(false);
-    const [isChangingPin, setIsChangingPin] = React.useState(false);
 
-    const handleOpenSetPinModal = () => {
-        setIsChangingPin(false);
-        setIsPinModalOpen(true);
+    const handleSignOut = async () => {
+        await signOut();
     };
-
-    const handleOpenChangePinModal = () => {
-        setIsChangingPin(true);
-        setIsPinModalOpen(true);
-    };
-    
-    const handleSavePin = (newPin: string) => {
-        localStorage.setItem(PASSWORD_KEY, newPin);
-        dispatch({ type: 'SET_PASSWORD_STATUS', payload: true });
-        setIsPinModalOpen(false);
-        alert(`PIN ${state.passwordIsSet ? 'changed' : 'set'} successfully!`);
-    };
-
 
     return (
         <div>
@@ -139,30 +121,21 @@ export const ProfileConfigurator: React.FC<ProfileConfiguratorProps> = ({
 
                 {/* Security Section */}
                 <div>
-                    <h3 className="text-lg font-semibold text-slate-600 mb-3">Security</h3>
+                    <h3 className="text-lg font-semibold text-slate-600 mb-3">Account</h3>
                      <div className="bg-slate-50 p-4 rounded-xl">
-                        <p className="text-sm font-medium text-slate-700 mb-2">Parent Zone PIN</p>
+                        <p className="text-sm font-medium text-slate-700 mb-2">Account Actions</p>
                         <p className="text-xs text-slate-500 mb-3">
-                            {state.passwordIsSet 
-                                ? "A PIN is set to protect the Parent Zone." 
-                                : "Set a PIN to prevent your child from accessing settings."}
+                            You are logged in. Sign out to switch accounts or secure the app.
                         </p>
                         <button
-                            onClick={state.passwordIsSet ? handleOpenChangePinModal : handleOpenSetPinModal}
-                            className="w-full sm:w-auto bg-purple-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-purple-600 transition"
+                            onClick={handleSignOut}
+                            className="w-full sm:w-auto bg-red-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-red-600 transition"
                         >
-                            {state.passwordIsSet ? 'Change 4-Digit PIN' : 'Set 4-Digit PIN'}
+                            Sign Out
                         </button>
                     </div>
                 </div>
             </div>
-            
-            <PinSetupModal
-                isOpen={isPinModalOpen}
-                onClose={() => setIsPinModalOpen(false)}
-                onSave={handleSavePin}
-                isChanging={isChangingPin}
-            />
         </div>
     );
 };

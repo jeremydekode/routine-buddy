@@ -4,25 +4,22 @@ import { ParentMode } from './components/ParentMode';
 import { ChildMode } from './components/ChildMode';
 import { useAppContext } from './hooks/useAppContext';
 import { Mode, ActiveRoutineId } from './types';
-import { PasswordModal } from './components/PasswordModal';
-import { PASSWORD_KEY } from './hooks/useAppContext';
-import { QUESTS_THEME, PLAYTIME_THEME } from './constants';
+// FIX: Import CHARACTER_QUESTS_THEME to use for background color
+import { QUESTS_THEME, PLAYTIME_THEME, CHARACTER_QUESTS_THEME } from './constants';
+import { Auth } from './components/Auth';
+
+const LoadingSpinner: React.FC = () => (
+    <div className="flex justify-center items-center h-screen bg-slate-100">
+        <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-purple-500"></div>
+    </div>
+);
+
 
 const App: React.FC = () => {
     const { state, dispatch } = useAppContext();
 
     const handleToggleMode = () => {
-        if (state.mode === Mode.Parent) {
-            dispatch({ type: 'TOGGLE_MODE' });
-        } else {
-            // Check if password exists before switching to Parent mode
-            const password = localStorage.getItem(PASSWORD_KEY);
-            if (password) {
-                dispatch({ type: 'SHOW_PASSWORD_MODAL' });
-            } else {
-                dispatch({ type: 'TOGGLE_MODE' }); // No password set, allow access
-            }
-        }
+        dispatch({ type: 'TOGGLE_MODE' });
     };
 
     const getBackgroundColor = () => {
@@ -32,6 +29,10 @@ const App: React.FC = () => {
             }
             if (state.activeRoutine === 'Playtime') {
                 return PLAYTIME_THEME.theme.color;
+            }
+            // FIX: Add a case for the 'Character' routine to set the correct background color.
+            if (state.activeRoutine === 'Character') {
+                return CHARACTER_QUESTS_THEME.theme.color;
             }
             // Check if activeRoutine is a routine ID and safely access its properties
             if (state.activeRoutine in state.routines) {
@@ -47,6 +48,14 @@ const App: React.FC = () => {
         }
         return 'bg-slate-100';
     };
+
+    if (state.isLoading) {
+        return <LoadingSpinner />;
+    }
+    
+    if (!state.isLoggedIn) {
+        return <Auth />;
+    }
 
     return (
         <div className={`min-h-screen font-sans transition-colors duration-500 ${getBackgroundColor()}`}>
@@ -65,7 +74,6 @@ const App: React.FC = () => {
 
                 {state.mode === Mode.Child ? <ChildMode /> : <ParentMode />}
             </div>
-            {state.showPasswordModal && <PasswordModal />}
         </div>
     );
 };
