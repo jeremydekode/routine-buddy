@@ -226,9 +226,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 dispatch({ type: 'SET_LOADING', payload: false });
             }
         } catch (error) {
-            console.error("Failed to load or parse remote state:", error);
-            // If anything goes wrong, stop loading and fall back to the default state.
-            dispatch({ type: 'SET_LOADING', payload: false });
+            console.error("Failed to load or parse remote state. Resetting to default state.", error);
+            // If anything goes wrong, treat it as data corruption and reset the state to default
+            // while keeping the user logged in. This will overwrite the bad data on the next save.
+            dispatch({ type: 'SET_STATE', payload: { ...initialState, isLoggedIn: true, isLoading: false } });
         }
     }, []);
     
