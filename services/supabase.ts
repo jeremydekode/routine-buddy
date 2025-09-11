@@ -1,8 +1,9 @@
-import { createClient, User } from '@supabase/supabase-js';
+// FIX: Removed `User` from import to resolve module export error.
+import { createClient } from '@supabase/supabase-js';
 import { AppState } from '../types';
 
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
+const supabaseUrl = 'https://ayvqicsiocgunoxgfmpj.supabase.co';
+const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF5dnFpY3Npb2NndW5veGZtcGoiLCJyb2xlIjoiYW5vbiIsImlhdCI6MTcxOTkzOTI5MywiZXhwIjoyMDM1NTE1MjkzfQ.1CIy_v1tBev9s2P9yXn3xGv-z-1ZQ_v3tZp0l8Zk2fY';
 
 let supabaseInstance = null;
 if (supabaseUrl && supabaseAnonKey) {
@@ -29,7 +30,9 @@ export const signOut = async () => {
     await supabase.auth.signOut();
 };
 
-export const getUser = async (): Promise<User | null> => {
+// FIX: Removed explicit `Promise<User | null>` return type to let TypeScript infer it.
+// This resolves potential import issues with the `User` type from `@supabase/supabase-js`.
+export const getUser = async () => {
     if (!supabase) return null;
     const { data, error } = await supabase.auth.getUser();
     if (error) {

@@ -212,33 +212,31 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }, []);
     
     React.useEffect(() => {
-        const checkUser = async () => {
-             const user = await getUser();
-             if (user) {
-                 await loadStateFromRemote();
-                 dispatch({ type: 'SET_LOGGED_IN', payload: true });
-             } else {
-                 dispatch({ type: 'SET_LOGGED_IN', payload: false });
-             }
-        };
-
-        checkUser();
-        
-        if (supabase) {
-            const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
-                if (event === 'SIGNED_IN') {
-                    loadStateFromRemote();
-                    dispatch({ type: 'SET_LOGGED_IN', payload: true });
-                } else if (event === 'SIGNED_OUT') {
-                    // Reset to a clean slate on sign out
-                    dispatch({ type: 'SET_STATE', payload: {...initialState, isLoading: false, isLoggedIn: false} });
-                }
-            });
-            
-            return () => {
-                authListener.subscription.unsubscribe();
-            };
+        // If supabase is not configured, stop loading and stay logged out.
+        if (!supabase) {
+            dispatch({ type: 'SET_LOGGED_IN', payload: false });
+            return;
         }
+        
+        dispatch({ type: 'SET_LOADING', payload: true });
+
+        const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+            if (session?.user) {
+                // This covers SIGNED_IN and INITIAL_SESSION with a user
+                await loadStateFromRemote();
+                dispatch({ type: 'SET_LOGGED_IN', payload: true });
+            } else if (event === 'SIGNED_OUT') {
+                // User signed out. Reset state completely to clear all data.
+                dispatch({ type: 'SET_STATE', payload: {...initialState, isLoading: false, isLoggedIn: false} });
+            } else {
+                // This covers INITIAL_SESSION without a user
+                dispatch({ type: 'SET_LOGGED_IN', payload: false });
+            }
+        });
+        
+        return () => {
+            authListener?.subscription.unsubscribe();
+        };
     }, [loadStateFromRemote]);
 
     React.useEffect(() => {
