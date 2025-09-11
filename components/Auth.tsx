@@ -1,32 +1,38 @@
-
 import * as React from 'react';
-import { signIn, signUp } from '../services/supabase';
-import { SunIcon } from './icons/Icons';
+import { signInWithGoogle } from '../services/supabase';
+import { SunIcon, GoogleIcon } from './icons/Icons';
 
 export const Auth: React.FC = () => {
-    const [isLoginView, setIsLoginView] = React.useState(true);
-    const [email, setEmail] = React.useState('jeremytehh@gmail.com');
-    const [password, setPassword] = React.useState('123123');
     const [loading, setLoading] = React.useState(false);
     const [error, setError] = React.useState<string | null>(null);
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+    // This effect detects when the user returns from the Google login page.
+    // If the login doesn't succeed within 5 seconds, it shows an error.
+    React.useEffect(() => {
+        // Check if the URL hash contains Supabase auth tokens.
+        if (window.location.hash.includes('access_token') || window.location.hash.includes('error_description')) {
+            setLoading(true);
+            const timeout = setTimeout(() => {
+                setError("Login failed. Please check your Supabase 'Site URL' configuration and your network connection.");
+                setLoading(false);
+                // Clean the URL to prevent the error from showing up on a refresh.
+                window.history.replaceState(null, '', window.location.pathname);
+            }, 5000); // 5-second timeout for Supabase to establish a session.
+
+            return () => clearTimeout(timeout);
+        }
+    }, []);
+
+    const handleGoogleSignIn = async () => {
         setLoading(true);
         setError(null);
-
-        const { error: authError } = isLoginView
-            ? await signIn(email, password)
-            : await signUp(email, password);
-        
+        const { error: authError } = await signInWithGoogle();
         if (authError) {
             setError(authError.message);
-        } else if (!isLoginView) {
-            setError('Check your email for a confirmation link!');
+            setLoading(false);
         }
-        // On successful login, the onAuthStateChange listener in AppContext will handle the redirect.
-
-        setLoading(false);
+        // On successful initiation, Supabase redirects to Google.
+        // The onAuthStateChange listener in AppContext will handle the successful login upon return.
     };
 
     return (
@@ -41,45 +47,18 @@ export const Auth: React.FC = () => {
                 </div>
             
                 <div className="bg-white rounded-2xl shadow-xl p-6 sm:p-8">
-                    <form onSubmit={handleSubmit} className="space-y-4">
-                        <div>
-                            <label className="text-sm font-medium text-slate-600">Email</label>
-                            <input
-                                type="email"
-                                value={email}
-                                onChange={e => setEmail(e.target.value)}
-                                className="w-full mt-1 p-3 border border-slate-300 rounded-lg focus:ring-purple-500 focus:border-purple-500"
-                                required
-                            />
-                        </div>
-                        <div>
-                            <label className="text-sm font-medium text-slate-600">Password</label>
-                            <input
-                                type="password"
-                                value={password}
-                                onChange={e => setPassword(e.target.value)}
-                                className="w-full mt-1 p-3 border border-slate-300 rounded-lg focus:ring-purple-500 focus:border-purple-500"
-                                required
-                            />
-                        </div>
-
-                        {error && <p className="text-red-500 text-sm text-center">{error}</p>}
-                        
+                    <div className="space-y-4">
                         <button
-                            type="submit"
+                            onClick={handleGoogleSignIn}
                             disabled={loading}
-                            className="w-full mt-2 bg-purple-500 text-white font-bold py-3 px-4 rounded-lg hover:bg-purple-600 transition disabled:bg-purple-300"
+                            className="w-full flex items-center justify-center gap-3 bg-white border border-slate-300 text-slate-700 font-bold py-3 px-4 rounded-lg hover:bg-slate-50 transition disabled:opacity-50"
                         >
-                            {loading ? 'Processing...' : (isLoginView ? 'Sign In' : 'Sign Up')}
+                            <GoogleIcon className="w-6 h-6" />
+                            {loading ? 'Connecting...' : 'Sign in with Google'}
                         </button>
-                    </form>
 
-                    <p className="text-center text-sm text-slate-500 mt-6">
-                        {isLoginView ? "Don't have an account?" : "Already have an account?"}
-                        <button onClick={() => { setIsLoginView(!isLoginView); setError(null); }} className="font-bold text-purple-500 hover:underline ml-1">
-                             {isLoginView ? 'Sign Up' : 'Sign In'}
-                        </button>
-                    </p>
+                        {error && <p className="text-red-500 text-sm text-center pt-2">{error}</p>}
+                    </div>
                 </div>
             </div>
         </div>

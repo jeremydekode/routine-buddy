@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { AppState, Mode, ActiveRoutineId } from '../types';
 import { INITIAL_ROUTINES, INITIAL_QUESTS } from '../constants';
-import { supabase, getUser, getUserProfile, updateUserProfile } from '../services/supabase';
+import { supabase, getUserProfile, updateUserProfile } from '../services/supabase';
 
 // Define action types
 type Action =
@@ -205,8 +205,26 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         dispatch({ type: 'SET_LOADING', payload: true });
         const profile = await getUserProfile();
         if (profile?.app_state) {
-            dispatch({ type: 'SET_STATE', payload: profile.app_state as Partial<AppState> });
+            const remoteState = profile.app_state as Partial<AppState>;
+
+            // Restore non-persisted React components like icons.
+            if (remoteState.routines) {
+                Object.keys(remoteState.routines).forEach(key => {
+                    const routineId = key as ActiveRoutineId;
+                    const remoteRoutine = remoteState.routines![routineId];
+                    const initialRoutine = INITIAL_ROUTINES[routineId];
+
+                    // If a routine from DB matches one from our constants, restore its static theme object.
+                    // This brings back the icon and ensures the color is correct, while keeping user's tasks.
+                    if (remoteRoutine && initialRoutine) {
+                         remoteRoutine.theme = initialRoutine.theme;
+                    }
+                });
+            }
+
+            dispatch({ type: 'SET_STATE', payload: remoteState });
         } else {
+            // No profile found, could be a new user. Use initial state.
             dispatch({ type: 'SET_LOADING', payload: false });
         }
     }, []);
@@ -239,12 +257,44 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         };
     }, [loadStateFromRemote]);
 
+    // Debounced effect for persisting state to Supabase
+    const { isLoading, isLoggedIn, showPasswordModal, mode, ...persistableState } = state;
+    const stringifiedPersistableState = JSON.stringify(persistableState);
+
     React.useEffect(() => {
-        if (state.isLoggedIn && !state.isLoading) {
-            const { isLoading, isLoggedIn, showPasswordModal, mode, ...persistableState } = state;
-            updateUserProfile(persistableState);
+        // Do not sync if not logged in or if the app is still loading initial state.
+        if (!isLoggedIn || isLoading) {
+            return;
         }
-    }, [state]);
+
+        const handler = setTimeout(() => {
+            // Create a deep copy of the state to avoid mutating the live state.
+            const stateToPersist = JSON.parse(stringifiedPersistableState);
+
+            // Rebuild the 'theme' object for each routine to ensure it only contains
+            // serializable data. This is more robust than deleting properties, which
+            // was causing "Failed to fetch" errors.
+            if (stateToPersist.routines) {
+                Object.keys(stateToPersist.routines).forEach(key => {
+                    const routineId = key as ActiveRoutineId;
+                    const routine = stateToPersist.routines[routineId];
+                    const originalRoutine = state.routines[routineId]; // Get from the live state
+                    
+                    if (routine && originalRoutine?.theme) {
+                        // Reconstruct the theme object, keeping only the serializable color property.
+                        routine.theme = { color: originalRoutine.theme.color };
+                    }
+                });
+            }
+
+            updateUserProfile(stateToPersist);
+        }, 1500); // Debounce updates by 1.5 seconds
+
+        return () => {
+            clearTimeout(handler);
+        };
+    }, [isLoggedIn, isLoading, stringifiedPersistableState, state.routines]);
+
 
     return (
         <AppContext.Provider value={{ state, dispatch }}>
