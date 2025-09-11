@@ -2,14 +2,16 @@
 import { createClient } from '@supabase/supabase-js';
 import { AppState } from '../types';
 
-const supabaseUrl = 'https://ayvqicsiocgunoxgfmpj.supabase.co';
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF5dnFpY3Npb2NndW5veGZtcGoiLCJyb2xlIjoiYW5vbiIsImlhdCI6MTcxOTkzOTI5MywiZXhwIjoyMDM1NTE1MjkzfQ.1CIy_v1tBev9s2P9yXn3xGv-z-1ZQ_v3tZp0l8Zk2fY';
+// IMPORTANT: Please replace these with the correct URL and Key from your Supabase project settings.
+// You can find these in your Supabase dashboard under Project Settings > API.
+const supabaseUrl = 'https://dbaxlhxkllhccidolqeg.supabase.co';
+const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRiYXhsaHhrbGxoY2NpZG9scWVnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc1MDc4ODIsImV4cCI6MjA3MzA4Mzg4Mn0.-z7Ak6r4_E9FACY24idm1jRMqcqQvX7XXZAUd7rLxiI';
 
 let supabaseInstance = null;
-if (supabaseUrl && supabaseAnonKey) {
+if (supabaseUrl && supabaseAnonKey && !supabaseUrl.includes('REPLACE')) {
     supabaseInstance = createClient(supabaseUrl, supabaseAnonKey);
 } else {
-    console.warn('Supabase environment variables not set. Sync features will be disabled.');
+    console.warn('Supabase URL or Key not configured. Please update services/supabase.ts. Sync features will be disabled.');
 }
 
 export const supabase = supabaseInstance;
