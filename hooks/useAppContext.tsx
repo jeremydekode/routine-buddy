@@ -199,6 +199,37 @@ const appReducer = (state: AppState, action: Action): AppState => {
     }
 };
 
+/**
+ * Prepares the application state for saving to a remote database.
+ * It removes transient UI properties and non-serializable data like React components.
+ * @param stateToPrepare The full application state.
+ * @returns A serializable, partial state object ready for persistence.
+ */
+const prepareStateForSaving = (stateToPrepare: AppState): Partial<AppState> => {
+    const { isLoading, isLoggedIn, showPasswordModal, mode, ...persistableState } = stateToPrepare;
+    try {
+        // Deep clone to avoid mutations and handle JSON-safe conversion
+        const clonedState = JSON.parse(JSON.stringify(persistableState));
+
+        // The 'theme' object on routines contains a non-serializable React icon.
+        // We must strip it out before saving, keeping only the color.
+        if (clonedState.routines) {
+            for (const key in clonedState.routines) {
+                const routineId = key as ActiveRoutineId;
+                const originalRoutine = stateToPrepare.routines[routineId];
+                if (clonedState.routines[routineId] && originalRoutine?.theme) {
+                    clonedState.routines[routineId].theme = { color: originalRoutine.theme.color };
+                }
+            }
+        }
+        return clonedState;
+    } catch (error) {
+        console.error("Error preparing state for saving. Data will not be persisted.", error);
+        return {}; // Return empty object to prevent saving corrupt data
+    }
+};
+
+
 export const PASSWORD_KEY = 'routine-buddy-pin';
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -211,6 +242,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             const remoteState = profile?.app_state as Partial<AppState> | null;
 
             if (remoteState && remoteState.routines && remoteState.quests) {
+                console.log("✅ Remote state loaded successfully:", remoteState);
                 Object.keys(remoteState.routines).forEach(key => {
                     const routineId = key as ActiveRoutineId;
                     const remoteRoutine = remoteState.routines![routineId];
@@ -222,36 +254,30 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 });
                 dispatch({ type: 'SET_STATE', payload: { ...remoteState, isLoggedIn: true } });
             } else {
-                console.log("No valid remote state found for user. Initializing with default state.");
+                console.log("ℹ️ No valid remote state found for user. Initializing with default state.");
                 dispatch({ type: 'SET_STATE', payload: { ...initialState, isLoggedIn: true, isLoading: false } });
             }
         } catch (error) {
-            console.error("Critical error during state loading. Resetting to default state.", error);
+            console.error("❌ Critical error during state loading. Resetting to default state.", error);
             dispatch({ type: 'SET_STATE', payload: { ...initialState, isLoggedIn: true, isLoading: false } });
         }
     }, []);
     
+    // Handles all authentication state changes, including initial load.
     React.useEffect(() => {
         if (!supabase) {
             dispatch({ type: 'SIGN_OUT' });
             return;
         }
 
-        const initializeSession = async () => {
-            const { data: { session } } = await supabase.auth.getSession();
+        // The onAuthStateChange listener handles all auth events:
+        // SIGNED_IN, SIGNED_OUT, and INITIAL_SESSION on page load.
+        const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
             if (session) {
-                await loadStateFromRemote();
-            } else {
-                dispatch({ type: 'SIGN_OUT' });
-            }
-        };
-
-        initializeSession();
-
-        const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
-            if (event === 'SIGNED_IN') {
+                // User is signed in or session was restored.
                 loadStateFromRemote();
-            } else if (event === 'SIGNED_OUT') {
+            } else {
+                // User is signed out.
                 dispatch({ type: 'SIGN_OUT' });
             }
         });
@@ -262,37 +288,25 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }, [loadStateFromRemote]);
 
     // Debounced effect for persisting state to Supabase
-    const { isLoading, isLoggedIn, showPasswordModal, mode, ...persistableState } = state;
-    const stringifiedPersistableState = JSON.stringify(persistableState);
-
     React.useEffect(() => {
+        const { isLoggedIn, isLoading } = state;
+        // Guard clauses: don't save if not logged in or if loading initial state.
         if (!isLoggedIn || isLoading) {
             return;
         }
 
         const handler = setTimeout(() => {
-            const stateToPersist = JSON.parse(stringifiedPersistableState);
-
-            if (stateToPersist.routines) {
-                Object.keys(stateToPersist.routines).forEach(key => {
-                    const routineId = key as ActiveRoutineId;
-                    const routine = stateToPersist.routines[routineId];
-                    const originalRoutine = state.routines[routineId];
-                    
-                    if (routine && originalRoutine?.theme) {
-                        // Strip non-serializable ReactNode from theme, keep color
-                        routine.theme = { color: originalRoutine.theme.color };
-                    }
-                });
+            const stateToPersist = prepareStateForSaving(state);
+            // Final check to ensure we don't save an empty object if preparation failed
+            if (stateToPersist && Object.keys(stateToPersist).length > 0) {
+                 updateUserProfile(stateToPersist);
             }
-
-            updateUserProfile(stateToPersist);
-        }, 1500);
+        }, 1500); // Debounce saves to avoid excessive database writes
 
         return () => {
             clearTimeout(handler);
         };
-    }, [isLoggedIn, isLoading, stringifiedPersistableState, state.routines]);
+    }, [state]); // Re-run whenever the state object changes
 
 
     return (

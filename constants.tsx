@@ -7,7 +7,7 @@ export const QUESTS_THEME = {
     id: 'Quests',
     name: 'Quests',
     theme: {
-        icon: <StarIcon className="text-yellow-500" />,
+        icon: <StarIcon />,
         color: 'bg-purple-100',
     },
 } as const;
@@ -16,7 +16,7 @@ export const PLAYTIME_THEME = {
     id: 'Playtime',
     name: 'Playtime',
     theme: {
-        icon: <GamepadIcon className="text-teal-500" />,
+        icon: <GamepadIcon />,
         color: 'bg-teal-100',
     },
 } as const;
@@ -25,7 +25,7 @@ export const CHARACTER_QUESTS_THEME = {
     id: 'Character',
     name: 'Character',
     theme: {
-        icon: <HeartIcon className="text-pink-500" />,
+        icon: <HeartIcon />,
         color: 'bg-pink-100',
     },
 } as const;
@@ -52,7 +52,7 @@ export const INITIAL_ROUTINES: Record<ActiveRoutineId, Routine> = {
             { id: '3', title: 'Get Dressed', icon: '👕', days: WEEKDAYS },
         ],
         theme: {
-            icon: <SunIcon className="text-amber-500" />,
+            icon: <SunIcon />,
             color: 'bg-amber-100',
         },
     },
@@ -64,7 +64,7 @@ export const INITIAL_ROUTINES: Record<ActiveRoutineId, Routine> = {
             { id: '5', title: 'Snack Time', icon: '🍎', days: [...DAYS_OF_WEEK] },
         ],
         theme: {
-            icon: <CloudIcon className="text-sky-500" />,
+            icon: <CloudIcon />,
             color: 'bg-sky-100',
         },
     },
@@ -77,7 +77,7 @@ export const INITIAL_ROUTINES: Record<ActiveRoutineId, Routine> = {
              { id: '8', title: 'Read a Book', icon: '📖', days: [...DAYS_OF_WEEK] },
         ],
         theme: {
-            icon: <MoonIcon className="text-indigo-500" />,
+            icon: <MoonIcon />,
             color: 'bg-indigo-200',
         },
     },

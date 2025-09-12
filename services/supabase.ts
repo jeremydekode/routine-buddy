@@ -96,7 +96,9 @@ export const updateUserProfile = async (app_state: Partial<AppState>) => {
         const { error } = await supabase.from('profiles').upsert(updates);
 
         if (error) {
-            console.error('Error updating profile:', error);
+            console.error('❌ Supabase upsert error:', error);
+        } else {
+            console.log('✅ State saved successfully to Supabase.');
         }
     } catch (e) {
         console.error('A network or unexpected error occurred while updating the profile:', e);
