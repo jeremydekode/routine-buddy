@@ -241,14 +241,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             return;
         }
 
-        const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+        const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
             if (session?.user) {
-                // loadStateFromRemote now handles all logic for setting state after login,
-                // including isLoggedIn and isLoading flags.
-                await loadStateFromRemote();
+                loadStateFromRemote();
             } else {
                 // This handles sign out and initial load without a session.
-                dispatch({ type: 'SET_STATE', payload: {...initialState, isLoading: false, isLoggedIn: false} });
+                dispatch({ type: 'SET_LOGGED_IN', payload: false });
             }
         });
         
