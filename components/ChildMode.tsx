@@ -199,7 +199,7 @@ export const ChildMode: React.FC = () => {
             <footer className="fixed bottom-0 left-0 right-0 p-3 bg-transparent z-20">
                 <div className="max-w-md md:max-w-3xl mx-auto relative flex justify-evenly bg-white/60 backdrop-blur-md rounded-2xl p-1.5 shadow-lg">
                     <div
-                        className={`absolute top-1.5 bottom-1.5 rounded-xl transition-all duration-300 ease-in-out`}
+                        className={`absolute top-1.5 bottom-1.5 left-0 rounded-xl transition-all duration-300 ease-in-out`}
                         style={{ ...gliderStyle, backgroundColor: activeColorHex }}
                     />
                     {availableRoutines.map((routine) => {
