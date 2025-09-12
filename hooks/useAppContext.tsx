@@ -23,7 +23,8 @@ type Action =
     | { type: 'SET_LOGGED_IN'; payload: boolean }
     | { type: 'SHOW_PASSWORD_MODAL' }
     | { type: 'HIDE_PASSWORD_MODAL' }
-    | { type: 'SET_LOADING'; payload: boolean };
+    | { type: 'SET_LOADING'; payload: boolean }
+    | { type: 'SIGN_OUT' };
 
 const initialState: AppState = {
     mode: Mode.Child,
@@ -189,6 +190,8 @@ const appReducer = (state: AppState, action: Action): AppState => {
         }
         case 'SET_LOGGED_IN':
             return { ...state, isLoggedIn: action.payload, isLoading: false };
+        case 'SIGN_OUT':
+            return { ...initialState, isLoggedIn: false, isLoading: false };
         case 'SET_LOADING':
             return { ...state, isLoading: action.payload };
         default:
@@ -207,10 +210,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             const profile = await getUserProfile();
             const remoteState = profile?.app_state as Partial<AppState> | null;
 
-            // Data validation: Check if the fetched state has the essential structures.
-            // If not, it's either a new user or the data is malformed/outdated.
             if (remoteState && remoteState.routines && remoteState.quests) {
-                // Restore non-persisted React components like icons.
                 Object.keys(remoteState.routines).forEach(key => {
                     const routineId = key as ActiveRoutineId;
                     const remoteRoutine = remoteState.routines![routineId];
@@ -222,31 +222,37 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 });
                 dispatch({ type: 'SET_STATE', payload: { ...remoteState, isLoggedIn: true } });
             } else {
-                // This branch handles new users OR users with corrupted data.
-                // We set the initial state but keep them logged in.
-                // The next save operation will create/overwrite their profile with a clean state.
-                console.log("No valid remote state found. Initializing with default state.");
+                console.log("No valid remote state found for user. Initializing with default state.");
                 dispatch({ type: 'SET_STATE', payload: { ...initialState, isLoggedIn: true, isLoading: false } });
             }
         } catch (error) {
             console.error("Critical error during state loading. Resetting to default state.", error);
-            // This is a fallback for unexpected errors (e.g., network failure).
             dispatch({ type: 'SET_STATE', payload: { ...initialState, isLoggedIn: true, isLoading: false } });
         }
     }, []);
     
     React.useEffect(() => {
         if (!supabase) {
-            dispatch({ type: 'SET_LOGGED_IN', payload: false });
+            dispatch({ type: 'SIGN_OUT' });
             return;
         }
 
-        const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
-            if (session?.user) {
-                loadStateFromRemote();
+        const initializeSession = async () => {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session) {
+                await loadStateFromRemote();
             } else {
-                // This handles sign out and initial load without a session.
-                dispatch({ type: 'SET_LOGGED_IN', payload: false });
+                dispatch({ type: 'SIGN_OUT' });
+            }
+        };
+
+        initializeSession();
+
+        const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+            if (event === 'SIGNED_IN') {
+                loadStateFromRemote();
+            } else if (event === 'SIGNED_OUT') {
+                dispatch({ type: 'SIGN_OUT' });
             }
         });
         
@@ -274,6 +280,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                     const originalRoutine = state.routines[routineId];
                     
                     if (routine && originalRoutine?.theme) {
+                        // Strip non-serializable ReactNode from theme, keep color
                         routine.theme = { color: originalRoutine.theme.color };
                     }
                 });
