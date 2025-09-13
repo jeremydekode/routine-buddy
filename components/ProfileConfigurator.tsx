@@ -1,3 +1,4 @@
+
 import * as React from 'react';
 import { signOut } from '../services/supabase';
 import { ToggleSwitch } from './ToggleSwitch';
@@ -88,7 +89,7 @@ export const ProfileConfigurator: React.FC<ProfileConfiguratorProps> = ({
                             label="Enable Playtime Reward"
                             checked={enablePlaytime}
                             onChange={onEnablePlaytimeChange}
-                            description="Unlocks a playtime timer after the Bedtime routine is complete."
+                            description="Unlocks a playtime timer after all of today's routines are complete."
                         />
                         {enablePlaytime && (
                             <div>

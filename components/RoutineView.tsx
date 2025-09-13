@@ -26,7 +26,7 @@ const CompletedStamp: React.FC<{ isPending: boolean }> = ({ isPending }) => (
 );
 
 export const RoutineView: React.FC<RoutineViewProps> = ({ routine, selectedDate }) => {
-    const { state } = useAppContext();
+    const { state, dispatch } = useAppContext();
     const { taskHistory, pendingRoutineApprovals } = state;
     const selectedDay = React.useMemo(() => DAYS_OF_WEEK[new Date(selectedDate).getUTCDay()], [selectedDate]);
     
@@ -43,6 +43,16 @@ export const RoutineView: React.FC<RoutineViewProps> = ({ routine, selectedDate 
     const isPending = React.useMemo(() => {
         return pendingRoutineApprovals.some(p => p.routineId === routine.id && p.date === selectedDate);
     }, [pendingRoutineApprovals, routine.id, selectedDate]);
+
+    React.useEffect(() => {
+        // Automatically request approval once a routine is completed, if not already pending.
+        if (isCompleted && !isPending) {
+            dispatch({
+                type: 'REQUEST_ROUTINE_APPROVAL',
+                payload: { routineId: routine.id, date: selectedDate }
+            });
+        }
+    }, [isCompleted, isPending, routine.id, selectedDate, dispatch]);
 
 
     if (tasksForSelectedDay.length === 0) {
