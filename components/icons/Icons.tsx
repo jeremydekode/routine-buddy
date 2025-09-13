@@ -139,3 +139,14 @@ export const LockIcon: React.FC<{ className?: string }> = ({ className }) => (
       <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 00-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
     </svg>
 );
+
+export const DragHandleIcon: React.FC<{ className?: string }> = ({ className }) => (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+        <circle cx="9" cy="6" r="1.5" fill="currentColor"/>
+        <circle cx="15" cy="6" r="1.5" fill="currentColor"/>
+        <circle cx="9" cy="12" r="1.5" fill="currentColor"/>
+        <circle cx="15" cy="12" r="1.5" fill="currentColor"/>
+        <circle cx="9" cy="18" r="1.5" fill="currentColor"/>
+        <circle cx="15" cy="18" r="1.5" fill="currentColor"/>
+    </svg>
+);
