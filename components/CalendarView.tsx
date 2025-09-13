@@ -9,7 +9,7 @@ interface CalendarViewProps {
 
 export const CalendarView: React.FC<CalendarViewProps> = ({ onClose }) => {
     const { state, dispatch } = useAppContext();
-    const { selectedDate, taskHistory } = state;
+    const { selectedDate } = state;
     // Initialize based on the globally selected date to stay in sync
     const [currentMonth, setCurrentMonth] = React.useState(new Date(selectedDate.replace(/-/g, '/')));
     
@@ -39,9 +39,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onClose }) => {
         const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
 
         return (
-            <div className="grid grid-cols-7 gap-2 text-center text-sm">
+            <div className="grid grid-cols-7 gap-y-2 text-center text-sm">
                 {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, index) => (
-                    <div key={index} className="font-bold text-slate-500">{day}</div>
+                    <div key={index} className="font-bold text-slate-500 text-xs py-1">{day}</div>
                 ))}
                 {blanks.map((_, i) => <div key={`blank-${i}`}></div>)}
                 {days.map(day => {
@@ -50,29 +50,25 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onClose }) => {
                     const isSelected = dateString === selectedDate;
                     const isToday = date.getTime() === today.getTime();
                     
-                    const hasCompletedTasks = (taskHistory[dateString]?.length || 0) > 0;
-                    
-                    let dayClasses = 'w-10 h-10 rounded-full transition-all duration-200 ease-in-out flex items-center justify-center font-semibold relative';
+                    let dayClasses = 'w-9 h-9 rounded-full transition-all duration-200 ease-in-out flex items-center justify-center font-semibold';
 
                     if (isSelected) {
-                        dayClasses += ' bg-purple-600 text-white shadow-lg scale-110';
+                        dayClasses += ' bg-purple-500 text-white shadow-md';
                     } else if (isToday) {
-                        dayClasses += ' bg-teal-200 text-teal-800 ring-2 ring-teal-300';
+                        dayClasses += ' bg-cyan-200 text-cyan-900';
                     } else {
-                        dayClasses += ' text-slate-700 hover:bg-slate-200';
+                        dayClasses += ' text-slate-700 hover:bg-slate-100';
                     }
 
                     return (
-                        <button 
-                            key={day} 
-                            onClick={() => handleDateSelect(date)}
-                            className={dayClasses}
-                        >
-                            {day}
-                            {hasCompletedTasks && !isSelected && (
-                                <div className={`absolute bottom-1.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 ${isToday ? 'bg-green-600' : 'bg-green-500'} rounded-full`}></div>
-                            )}
-                        </button>
+                        <div key={day} className="flex justify-center items-center h-10">
+                            <button 
+                                onClick={() => handleDateSelect(date)}
+                                className={dayClasses}
+                            >
+                                {day}
+                            </button>
+                        </div>
                     );
                 })}
             </div>
@@ -80,15 +76,16 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onClose }) => {
     };
 
     return (
-        <div className="bg-white/95 backdrop-blur-sm p-4 rounded-2xl shadow-lg w-full max-w-sm border border-slate-200/50">
-            <div className="flex justify-between items-center mb-3">
-                <button onClick={() => changeMonth(-1)} className="p-1 rounded-full hover:bg-slate-200">
+        <div className="bg-white/95 backdrop-blur-sm p-4 rounded-2xl shadow-lg w-full max-w-xs border border-slate-200/50">
+            <div className="flex justify-between items-center mb-3 px-1">
+                <button onClick={() => changeMonth(-1)} className="p-2 rounded-full hover:bg-slate-100 transition-colors">
                     <ChevronLeftIcon className="w-5 h-5 text-slate-600" />
                 </button>
-                <h3 className="font-bold text-slate-700">
-                    {currentMonth.toLocaleString('default', { month: 'long', year: 'numeric' })}
-                </h3>
-                 <button onClick={() => changeMonth(1)} className="p-1 rounded-full hover:bg-slate-200">
+                <div className="font-bold text-slate-700 text-center leading-tight">
+                    <div>{currentMonth.toLocaleString('default', { month: 'long' })}</div>
+                    <div>{currentMonth.getFullYear()}</div>
+                </div>
+                 <button onClick={() => changeMonth(1)} className="p-2 rounded-full hover:bg-slate-100 transition-colors">
                     <ChevronRightIcon className="w-5 h-5 text-slate-600" />
                 </button>
             </div>
