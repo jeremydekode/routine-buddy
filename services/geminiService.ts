@@ -64,7 +64,6 @@ export const generateQuestImage = async (questItemDescription: string): Promise<
     }
 
     const prompt = `A colorful, child-friendly 3D illustration of a ${questItemDescription}. 
-Include a clear logo or symbol of ${questItemDescription} if it exists (e.g., Hot Wheels logo, LEGO logo). 
 Style: bright, playful, smooth toy-like render, high detail, no background clutter. 
 Perfect for a kids' quest app.`;
 

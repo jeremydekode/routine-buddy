@@ -8,6 +8,8 @@ import { Mode, ActiveRoutineId } from './types';
 import { QUESTS_THEME, PLAYTIME_THEME, CHARACTER_QUESTS_THEME } from './constants';
 import { Auth } from './components/Auth';
 import { OnboardingTutorial } from './components/OnboardingTutorial';
+import { CalendarIcon } from './components/icons/Icons';
+import { CalendarView } from './components/CalendarView';
 
 const LoadingSpinner: React.FC = () => (
     <div className="flex justify-center items-center h-screen bg-slate-100">
@@ -18,6 +20,7 @@ const LoadingSpinner: React.FC = () => (
 
 const App: React.FC = () => {
     const { state, dispatch } = useAppContext();
+    const [isCalendarOpen, setIsCalendarOpen] = React.useState(false);
 
     const handleToggleMode = () => {
         dispatch({ type: 'TOGGLE_MODE' });
@@ -62,9 +65,25 @@ const App: React.FC = () => {
         <div className={`min-h-screen font-sans transition-colors duration-500 ${getBackgroundColor()}`}>
             {state.showOnboarding && <OnboardingTutorial />}
             <div className="max-w-md md:max-w-3xl mx-auto p-4 md:p-8 relative">
+                {state.mode === Mode.Child && (
+                    <div className="absolute top-4 left-4 md:top-8 md:left-8 z-20">
+                         <button 
+                            onClick={() => setIsCalendarOpen(!isCalendarOpen)} 
+                            className="p-3 rounded-full bg-white/70 backdrop-blur-sm shadow-md hover:bg-white transition-all focus:outline-none focus:ring-2 focus:ring-purple-500"
+                            aria-label="Open calendar"
+                        >
+                            <CalendarIcon className="w-6 h-6 text-purple-600" />
+                        </button>
+                        {isCalendarOpen && (
+                            <div className="absolute top-full mt-2 left-0 z-30">
+                                <CalendarView onClose={() => setIsCalendarOpen(false)} />
+                            </div>
+                        )}
+                    </div>
+                )}
                 <button
                     onClick={handleToggleMode}
-                    className="absolute top-4 left-4 md:top-8 md:left-8 z-20 bg-white/70 backdrop-blur-sm rounded-full p-3 shadow-md hover:bg-white transition-all focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    className="absolute top-4 right-4 md:top-8 md:right-8 z-20 bg-white/70 backdrop-blur-sm rounded-full p-3 shadow-md hover:bg-white transition-all focus:outline-none focus:ring-2 focus:ring-purple-500"
                     aria-label={state.mode === Mode.Child ? "Switch to Parent Mode" : "Exit Parent Zone"}
                 >
                     {state.mode === Mode.Child ? (

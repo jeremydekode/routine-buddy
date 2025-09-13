@@ -5,9 +5,8 @@ import { RoutineView } from './RoutineView';
 import { QuestView } from './QuestView';
 import { PlaytimeView } from './PlaytimeView';
 import { ThemedProgressBar } from './ThemedProgressBar';
-import { CalendarView } from './CalendarView';
 import { QUESTS_THEME, PLAYTIME_THEME, CHARACTER_QUESTS_THEME } from '../constants';
-import { CalendarIcon, LockIcon } from './icons/Icons';
+import { LockIcon } from './icons/Icons';
 // FIX: Import Task and Theme for the new AvailableRoutine interface.
 import { ActiveRoutineId, DAYS_OF_WEEK, AppState, Routine, Task, Theme } from '../types';
 
@@ -51,7 +50,6 @@ const NavButton: React.FC<NavButtonProps> = ({ label, icon, onClick, isActive, i
 export const ChildMode: React.FC = () => {
     const { state, dispatch } = useAppContext();
     const { routines, activeRoutine, selectedDate, childName, enablePlaytime, enableMorning, enableAfterSchool, enableBedtime, enableCharacterQuests } = state;
-    const [isCalendarOpen, setIsCalendarOpen] = React.useState(false);
     const [showPlaytimeHint, setShowPlaytimeHint] = React.useState(false);
     
     const selectedRoutineData = activeRoutine in routines ? routines[activeRoutine as ActiveRoutineId] : null;
@@ -167,21 +165,9 @@ export const ChildMode: React.FC = () => {
     return (
         <div className="relative">
             <div className="pt-20 pb-28">
-                <header className="relative flex justify-center items-center mb-6">
-                    <div className="text-center">
-                        <h1 className="text-3xl md:text-4xl font-bold text-slate-800">{getGreeting()}</h1>
-                        <p className="font-semibold text-slate-500 mt-2">{dateDisplay}</p>
-                    </div>
-                    <div className="absolute top-1/2 -translate-y-1/2 right-0 z-10">
-                        <button onClick={() => setIsCalendarOpen(!isCalendarOpen)} className="p-3 rounded-full bg-white/70 backdrop-blur-sm shadow-md hover:bg-white transition-all">
-                            <CalendarIcon className="w-6 h-6 text-purple-600" />
-                        </button>
-                        {isCalendarOpen && (
-                            <div className="absolute top-full mt-2 right-0 z-30">
-                                <CalendarView onClose={() => setIsCalendarOpen(false)} />
-                            </div>
-                        )}
-                    </div>
+                <header className="relative flex flex-col items-center mb-6">
+                    <h1 className="text-3xl md:text-4xl font-bold text-slate-800">{getGreeting()}</h1>
+                    <p className="font-semibold text-slate-500 mt-2">{dateDisplay}</p>
                 </header>
 
                 <main>
