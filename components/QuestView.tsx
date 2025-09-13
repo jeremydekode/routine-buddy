@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { useAppContext } from '../hooks/useAppContext';
 import { Quest } from '../types';
-import { StarIcon, HeartIcon } from './icons/Icons';
+import { StarIcon, HeartIcon, TrophyIcon } from './icons/Icons';
 import { CharacterQuestView } from './CharacterQuestView';
 
 interface QuestProgressProps {
@@ -32,22 +32,32 @@ const QuestProgress: React.FC<QuestProgressProps> = ({ quest, currentStars, isPe
 
     return (
         <div className={`${colors.bg} p-3 rounded-2xl shadow-lg flex flex-col`}>
-            <div className="flex justify-between items-center mb-2">
-                <div className="flex items-center gap-2">
-                    <h3 className={`text-xl font-bold ${colors.text}`}>{quest.name}</h3>
-                    {(isCompleted || isPending) && (
-                        <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold transition-colors ${
-                            isPending ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700'
-                        }`}>
-                            <StarIcon className="w-3 h-3" />
-                            <span>{isPending ? 'Pending' : 'Done!'}</span>
-                        </div>
-                    )}
-                </div>
-                <p className="text-sm font-semibold text-slate-600">
-                    {Math.min(currentStars, quest.goal)} / {quest.goal} stars
-                </p>
+            <div className="aspect-video w-full bg-white/50 rounded-lg mb-3 flex items-center justify-center overflow-hidden">
+                {quest.imageUrl ? (
+                    <img src={quest.imageUrl} alt={quest.name} className="w-full h-full object-cover" />
+                ) : (
+                    <TrophyIcon className={`w-16 h-16 ${colors.text} opacity-50`} />
+                )}
             </div>
+            
+            <div className="flex justify-between items-start mb-2">
+                 <div className="flex flex-col">
+                    <h3 className={`text-xl font-bold ${colors.text}`}>{quest.name}</h3>
+                    <p className="text-sm font-semibold text-slate-600">{quest.description}</p>
+                </div>
+                {(isCompleted || isPending) && (
+                    <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold transition-colors self-start flex-shrink-0 ${
+                        isPending ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700'
+                    }`}>
+                        <StarIcon className="w-3 h-3" />
+                        <span>{isPending ? 'Pending' : 'Done!'}</span>
+                    </div>
+                )}
+            </div>
+            
+             <p className="text-sm font-semibold text-slate-600 mb-2 text-right">
+                {Math.min(currentStars, quest.goal)} / {quest.goal} stars
+            </p>
 
             <div className={`grid ${gridCols} ${gridGap} mb-3`}>
                 {starStamps.map((isFilled, index) => (

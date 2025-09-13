@@ -1,7 +1,8 @@
 import * as React from 'react';
 import { Quest } from '../types';
-import { TrophyIcon } from './icons/Icons';
+import { TrophyIcon, ImageIcon } from './icons/Icons';
 import { ToggleSwitch } from './ToggleSwitch';
+import { generateQuestImage } from '../services/geminiService';
 
 interface QuestEditorCardProps {
     quest: Quest;
@@ -11,14 +12,39 @@ interface QuestEditorCardProps {
 }
 
 const QuestEditorCard: React.FC<QuestEditorCardProps> = ({ quest, onUpdate, title, colors }) => {
+    const [isGenerating, setIsGenerating] = React.useState(false);
 
     const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         onUpdate({ ...quest, name: e.target.value });
+    };
+    
+    const handleDescriptionChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        onUpdate({ ...quest, description: e.target.value });
     };
 
     const handleGoalChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const newGoal = parseInt(e.target.value, 10);
         onUpdate({ ...quest, goal: isNaN(newGoal) || newGoal < 0 ? 0 : newGoal });
+    };
+
+    const handleGenerateImage = async () => {
+        if (!quest.description) {
+            alert("Please provide a reward description first.");
+            return;
+        }
+        setIsGenerating(true);
+        try {
+            const imageUrl = await generateQuestImage(quest.description);
+            if (imageUrl) {
+                onUpdate({ ...quest, imageUrl });
+            } else {
+                alert("Sorry, the image could not be generated. Please try again.");
+            }
+        } catch (error) {
+             alert("An error occurred while generating the image.");
+        } finally {
+            setIsGenerating(false);
+        }
     };
 
     return (
@@ -32,7 +58,17 @@ const QuestEditorCard: React.FC<QuestEditorCardProps> = ({ quest, onUpdate, titl
                         value={quest.name}
                         onChange={handleNameChange}
                         className="w-full mt-1 p-2 border border-slate-300 rounded-lg focus:ring-purple-500 focus:border-purple-500"
-                        placeholder="e.g., Toy Store Trip"
+                        placeholder="e.g., Weekly Wonder"
+                    />
+                </div>
+                <div>
+                    <label className="text-sm font-medium text-slate-600">Reward Description</label>
+                    <input
+                        type="text"
+                        value={quest.description}
+                        onChange={handleDescriptionChange}
+                        className="w-full mt-1 p-2 border border-slate-300 rounded-lg focus:ring-purple-500 focus:border-purple-500"
+                        placeholder="e.g., A new LEGO set"
                     />
                 </div>
                 <div>
@@ -44,6 +80,26 @@ const QuestEditorCard: React.FC<QuestEditorCardProps> = ({ quest, onUpdate, titl
                         min="1"
                         className="w-full mt-1 p-2 border border-slate-300 rounded-lg focus:ring-purple-500 focus:border-purple-500"
                     />
+                </div>
+                <div className="pt-2">
+                     <label className="text-sm font-medium text-slate-600 mb-2 block">Reward Image</label>
+                     <div className="aspect-square w-full bg-slate-100 rounded-lg flex items-center justify-center overflow-hidden border border-slate-200">
+                         {isGenerating ? (
+                             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div>
+                         ) : quest.imageUrl ? (
+                             <img src={quest.imageUrl} alt={quest.description} className="w-full h-full object-cover" />
+                         ) : (
+                             <ImageIcon className="w-12 h-12 text-slate-400" />
+                         )}
+                     </div>
+                     <button
+                        onClick={handleGenerateImage}
+                        disabled={isGenerating}
+                        className="w-full mt-2 bg-purple-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-purple-600 transition disabled:bg-purple-300 flex items-center justify-center gap-2"
+                    >
+                        <i className="fa-solid fa-wand-magic-sparkles"></i>
+                        {isGenerating ? 'Generating...' : 'Generate with AI'}
+                    </button>
                 </div>
             </div>
         </div>

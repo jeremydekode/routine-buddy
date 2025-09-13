@@ -87,11 +87,15 @@ export const INITIAL_QUESTS: { weekly: Quest; monthly: Quest } = {
     weekly: {
         id: 'weekly',
         name: 'Weekly Wonder',
+        description: 'A surprise toy',
         goal: 7,
+        imageUrl: '',
     },
     monthly: {
         id: 'monthly',
         name: 'Monthly Marvel',
+        description: 'A trip to the ice cream shop',
         goal: 30,
+        imageUrl: '',
     }
 };

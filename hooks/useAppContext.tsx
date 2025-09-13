@@ -25,7 +25,8 @@ type Action =
     | { type: 'HIDE_PASSWORD_MODAL' }
     | { type: 'SET_LOADING'; payload: boolean }
     | { type: 'SIGN_OUT' }
-    | { type: 'SIGN_IN_AS_GUEST' };
+    | { type: 'SIGN_IN_AS_GUEST' }
+    | { type: 'COMPLETE_ONBOARDING' };
 
 const getLocalDateString = (date: Date): string => {
     const year = date.getFullYear();
@@ -61,6 +62,7 @@ const initialState: AppState = {
     isLoggedIn: false,
     showPasswordModal: false,
     isGuest: false,
+    showOnboarding: false,
 };
 
 const AppContext = React.createContext<{
@@ -209,11 +211,14 @@ const appReducer = (state: AppState, action: Action): AppState => {
                 isGuest: true,
                 isLoading: false,
                 selectedDate: getLocalDateString(new Date()),
+                showOnboarding: true,
             };
         case 'SIGN_OUT':
             return { ...initialState, isLoggedIn: false, isLoading: false, isGuest: false };
         case 'SET_LOADING':
             return { ...state, isLoading: action.payload };
+        case 'COMPLETE_ONBOARDING':
+            return { ...state, showOnboarding: false };
         default:
             return state;
     }
@@ -291,11 +296,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 });
             } else {
                 console.log("ℹ️ No valid remote state found for user. Initializing with default state.");
-                dispatch({ type: 'SET_STATE', payload: { ...initialState, selectedDate: todayDate, isLoggedIn: true, isLoading: false } });
+                dispatch({ type: 'SET_STATE', payload: { ...initialState, selectedDate: todayDate, isLoggedIn: true, isLoading: false, showOnboarding: true } });
             }
         } catch (error) {
             console.error("❌ Critical error during state loading. Resetting to default state.", error);
-            dispatch({ type: 'SET_STATE', payload: { ...initialState, selectedDate: todayDate, isLoggedIn: true, isLoading: false } });
+            dispatch({ type: 'SET_STATE', payload: { ...initialState, selectedDate: todayDate, isLoggedIn: true, isLoading: false, showOnboarding: true } });
         }
     }, []);
     

@@ -7,6 +7,7 @@ import { Mode, ActiveRoutineId } from './types';
 // FIX: Import CHARACTER_QUESTS_THEME to use for background color
 import { QUESTS_THEME, PLAYTIME_THEME, CHARACTER_QUESTS_THEME } from './constants';
 import { Auth } from './components/Auth';
+import { OnboardingTutorial } from './components/OnboardingTutorial';
 
 const LoadingSpinner: React.FC = () => (
     <div className="flex justify-center items-center h-screen bg-slate-100">
@@ -59,6 +60,7 @@ const App: React.FC = () => {
 
     return (
         <div className={`min-h-screen font-sans transition-colors duration-500 ${getBackgroundColor()}`}>
+            {state.showOnboarding && <OnboardingTutorial />}
             <div className="max-w-md md:max-w-3xl mx-auto p-4 md:p-8 relative">
                 <button
                     onClick={handleToggleMode}
