@@ -45,6 +45,8 @@ const initialState: AppState = {
     starCount: 0,
     weeklyQuestPending: false,
     monthlyQuestPending: false,
+    weeklyQuestClaimedDate: null,
+    monthlyQuestClaimedDate: null,
     starAdjustmentLog: [],
     childName: 'Buddy',
     playtimeDuration: 10,
@@ -150,6 +152,7 @@ const appReducer = (state: AppState, action: Action): AppState => {
                      ...state.starAdjustmentLog
                 ],
                 [`${questId}QuestPending`]: false,
+                [`${questId}QuestClaimedDate`]: new Date().toISOString(),
             };
         }
         case 'REJECT_QUEST': {
@@ -268,17 +271,50 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                     }
                 });
                 
-                // Daily reset logic: Check the last active date from task history.
+                // Daily/Weekly/Monthly reset logic
                 const lastActiveDate = remoteState.taskHistory ? Object.keys(remoteState.taskHistory).sort().pop() : null;
                 const isNewDay = lastActiveDate !== todayDate;
+
+                // Quest claim reset logic
+                const getStartOfWeek = (date: Date): Date => {
+                    const d = new Date(date);
+                    const day = d.getDay();
+                    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+                    d.setDate(diff);
+                    d.setHours(0, 0, 0, 0);
+                    return d;
+                };
+                const getStartOfMonth = (date: Date): Date => {
+                    const d = new Date(date);
+                    d.setDate(1);
+                    d.setHours(0, 0, 0, 0);
+                    return d;
+                };
+
+                let { weeklyQuestClaimedDate, monthlyQuestClaimedDate } = remoteState;
+
+                if (remoteState.weeklyQuestResetEnabled && weeklyQuestClaimedDate) {
+                    const startOfWeek = getStartOfWeek(new Date());
+                    if (new Date(weeklyQuestClaimedDate) < startOfWeek) {
+                        weeklyQuestClaimedDate = null;
+                    }
+                }
+                if (remoteState.monthlyQuestResetEnabled && monthlyQuestClaimedDate) {
+                    const startOfMonth = getStartOfMonth(new Date());
+                    if (new Date(monthlyQuestClaimedDate) < startOfMonth) {
+                        monthlyQuestClaimedDate = null;
+                    }
+                }
+
 
                 dispatch({ 
                     type: 'SET_STATE', 
                     payload: { 
                         ...remoteState, 
                         selectedDate: todayDate, 
-                        // Reset playtime if it's a new day
                         playtimeStarted: isNewDay ? false : remoteState.playtimeStarted,
+                        weeklyQuestClaimedDate,
+                        monthlyQuestClaimedDate,
                         isLoggedIn: true 
                     } 
                 });

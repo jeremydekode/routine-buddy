@@ -2,13 +2,14 @@
 import * as React from 'react';
 import { useAppContext } from '../hooks/useAppContext';
 import { Quest } from '../types';
-import { StarIcon, HeartIcon } from './icons/Icons';
+import { StarIcon, HeartIcon, TrophyIcon } from './icons/Icons';
 import { CharacterQuestView } from './CharacterQuestView';
 
 interface QuestProgressProps {
     quest: Quest;
     currentStars: number;
     isPending: boolean;
+    isClaimed: boolean;
     colors: {
         bg: string;
         text: string;
@@ -17,7 +18,18 @@ interface QuestProgressProps {
     };
 }
 
-const QuestProgress: React.FC<QuestProgressProps> = ({ quest, currentStars, isPending, colors }) => {
+const ClaimedStamp: React.FC = () => (
+    <div className="absolute inset-0 bg-white/60 backdrop-blur-sm flex items-center justify-center rounded-2xl z-10 pointer-events-none">
+        <div className="transform -rotate-12 border-4 border-purple-400 bg-purple-100 rounded-lg p-4 text-center shadow-lg">
+            <h3 className="text-4xl font-black text-purple-600 uppercase tracking-wider">
+                Claimed
+            </h3>
+            <TrophyIcon className="w-10 h-10 text-amber-500 mx-auto mt-2" />
+        </div>
+    </div>
+);
+
+const QuestProgress: React.FC<QuestProgressProps> = ({ quest, currentStars, isPending, isClaimed, colors }) => {
     const { dispatch } = useAppContext();
     const isCompleted = currentStars >= quest.goal;
 
@@ -32,32 +44,34 @@ const QuestProgress: React.FC<QuestProgressProps> = ({ quest, currentStars, isPe
     const starStamps = Array.from({ length: quest.goal }, (_, i) => i < currentStars);
 
     return (
-        <div className={`${colors.bg} p-4 rounded-2xl shadow-lg flex flex-col`}>
-            <div className="flex justify-between items-center mb-2">
-                <h3 className={`text-xl font-bold ${colors.text}`}>{quest.name}</h3>
-                {(isCompleted || isPending) && (
-                    <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold transition-colors self-start flex-shrink-0 ${
-                        isPending ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700'
-                    }`}>
-                        <StarIcon className="w-3 h-3" />
-                        <span>{isPending ? 'Pending' : 'Done!'}</span>
-                    </div>
-                )}
-            </div>
-            
-             <p className="text-sm font-semibold text-slate-600 mb-3 text-right">
-                {Math.min(currentStars, quest.goal)} / {quest.goal} stars
-            </p>
+        <div className={`${colors.bg} p-4 rounded-2xl shadow-lg flex flex-col relative`}>
+            {isClaimed && <ClaimedStamp />}
+            <div className={isClaimed ? 'opacity-50' : ''}>
+                <div className="flex justify-between items-center mb-2">
+                    <h3 className={`text-xl font-bold ${colors.text}`}>{quest.name}</h3>
+                    {(isCompleted || isPending) && !isClaimed && (
+                        <div className={`flex items-center px-2 py-0.5 rounded-full text-xs font-bold transition-colors self-start flex-shrink-0 ${
+                            isPending ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700'
+                        }`}>
+                            <span>{isPending ? 'Pending' : 'Done!'}</span>
+                        </div>
+                    )}
+                </div>
+                
+                 <p className="text-sm font-semibold text-slate-600 mb-3 text-right">
+                    {Math.min(currentStars, quest.goal)} / {quest.goal} stars
+                </p>
 
-            <div className={`grid ${gridCols} ${gridGap} mb-3`}>
-                {starStamps.map((isFilled, index) => (
-                     <div key={index} className="w-full aspect-square flex items-center justify-center">
-                         <StarIcon className={`${starSize} ${isFilled ? colors.starFull : colors.starEmpty}`} />
-                     </div>
-                ))}
+                <div className={`grid ${gridCols} ${gridGap} mb-3`}>
+                    {starStamps.map((isFilled, index) => (
+                         <div key={index} className="w-full aspect-square flex items-center justify-center">
+                             <StarIcon className={`${starSize} ${isFilled ? colors.starFull : colors.starEmpty}`} />
+                         </div>
+                    ))}
+                </div>
             </div>
             
-            {isCompleted && (
+            {!isClaimed && isCompleted && (
                  <button 
                     onClick={handleClaim}
                     disabled={isPending}
@@ -72,7 +86,7 @@ const QuestProgress: React.FC<QuestProgressProps> = ({ quest, currentStars, isPe
 
 const StarQuests: React.FC = () => {
     const { state } = useAppContext();
-    const { quests, starCount, weeklyQuestPending, monthlyQuestPending, weeklyQuestResetEnabled, monthlyQuestResetEnabled, starAdjustmentLog } = state;
+    const { quests, starCount, weeklyQuestPending, monthlyQuestPending, weeklyQuestResetEnabled, monthlyQuestResetEnabled, starAdjustmentLog, weeklyQuestClaimedDate, monthlyQuestClaimedDate } = state;
 
     const getStartOfWeek = React.useCallback((date: Date): Date => {
         const d = new Date(date);
@@ -94,17 +108,35 @@ const StarQuests: React.FC = () => {
         if (!weeklyQuestResetEnabled) return starCount;
         const startOfWeek = getStartOfWeek(new Date());
         return starAdjustmentLog
-            .filter(log => new Date(log.date) >= startOfWeek && log.amount > 0)
+            .filter(log => new Date(log.date) >= startOfWeek)
             .reduce((sum, log) => sum + log.amount, 0);
     }, [starAdjustmentLog, weeklyQuestResetEnabled, starCount, getStartOfWeek]);
 
     const starsEarnedThisMonth = React.useMemo(() => {
-        if (!monthlyQuestResetEnabled) return starCount;
-        const startOfMonth = getStartOfMonth(new Date());
-        return starAdjustmentLog
-            .filter(log => new Date(log.date) >= startOfMonth && log.amount > 0)
-            .reduce((sum, log) => sum + log.amount, 0);
-    }, [starAdjustmentLog, monthlyQuestResetEnabled, starCount, getStartOfMonth]);
+        const calculateMonthlyAccumulation = (logs: typeof starAdjustmentLog) => {
+            return logs.reduce((sum, log) => {
+                // Always add earned stars
+                if (log.amount > 0) {
+                    return sum + log.amount;
+                }
+                // Only subtract manual deductions, not quest claims.
+                if (log.amount < 0 && !log.reason.startsWith('Reward for')) {
+                    return sum + log.amount;
+                }
+                // Ignore quest claim deductions for the purpose of monthly progress
+                return sum;
+            }, 0);
+        };
+
+        if (monthlyQuestResetEnabled) {
+            const startOfMonth = getStartOfMonth(new Date());
+            const monthlyLogs = starAdjustmentLog.filter(log => new Date(log.date) >= startOfMonth);
+            return calculateMonthlyAccumulation(monthlyLogs);
+        } else {
+            // When reset is disabled, accumulate over all time.
+            return calculateMonthlyAccumulation(starAdjustmentLog);
+        }
+    }, [starAdjustmentLog, monthlyQuestResetEnabled, getStartOfMonth]);
 
     return (
         <div className="space-y-4">
@@ -124,6 +156,7 @@ const StarQuests: React.FC = () => {
                 quest={quests.weekly}
                 currentStars={starsEarnedThisWeek}
                 isPending={weeklyQuestPending}
+                isClaimed={!!weeklyQuestClaimedDate}
                 colors={{
                     bg: 'bg-amber-100',
                     text: 'text-amber-700',
@@ -135,6 +168,7 @@ const StarQuests: React.FC = () => {
                 quest={quests.monthly}
                 currentStars={starsEarnedThisMonth}
                 isPending={monthlyQuestPending}
+                isClaimed={!!monthlyQuestClaimedDate}
                 colors={{
                     bg: 'bg-sky-100',
                     text: 'text-sky-700',

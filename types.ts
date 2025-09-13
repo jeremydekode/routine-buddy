@@ -77,6 +77,8 @@ export interface AppState {
     starCount: number;
     weeklyQuestPending: boolean;
     monthlyQuestPending: boolean;
+    weeklyQuestClaimedDate: string | null;
+    monthlyQuestClaimedDate: string | null;
     starAdjustmentLog: StarAdjustmentLogEntry[];
     childName: string;
     playtimeDuration: number; // in minutes
