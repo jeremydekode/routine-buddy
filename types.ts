@@ -37,9 +37,7 @@ export type QuestId = 'weekly' | 'monthly';
 export interface Quest {
     id: QuestId;
     name: string;
-    description: string; // What the reward is, e.g., "A new LEGO set"
     goal: number;
-    imageUrl?: string; // Base64 data URL for the generated image
 }
 
 export type CharacterQuestCategory = 'Patience' | 'Gratitude' | 'Kindness' | 'Responsibility';

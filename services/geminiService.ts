@@ -56,35 +56,3 @@ export const getAiSuggestions = async (timeOfDay: 'Morning' | 'After-School' | '
         ];
     }
 };
-
-export const generateQuestImage = async (questItemDescription: string): Promise<string | null> => {
-    if (!API_KEY) {
-        console.warn("API_KEY not set. Image generation disabled.");
-        return null;
-    }
-
-    const prompt = `A colorful, child-friendly 3D illustration of a ${questItemDescription}. 
-Style: bright, playful, smooth toy-like render, high detail, no background clutter. 
-Perfect for a kids' quest app.`;
-
-    try {
-        const response = await ai.models.generateImages({
-            model: 'imagen-4.0-generate-001',
-            prompt: prompt,
-            config: {
-              numberOfImages: 1,
-              outputMimeType: 'image/png',
-              aspectRatio: '1:1',
-            },
-        });
-
-        if (response.generatedImages && response.generatedImages.length > 0) {
-            const base64ImageBytes: string = response.generatedImages[0].image.imageBytes;
-            return `data:image/png;base64,${base64ImageBytes}`;
-        }
-        return null;
-    } catch (error) {
-        console.error("Error generating quest image:", error);
-        return null;
-    }
-};
