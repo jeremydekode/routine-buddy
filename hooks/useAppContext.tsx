@@ -26,9 +26,16 @@ type Action =
     | { type: 'SET_LOADING'; payload: boolean }
     | { type: 'SIGN_OUT' };
 
+const getLocalDateString = (date: Date): string => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+};
+
 const initialState: AppState = {
     mode: Mode.Child,
-    selectedDate: new Date().toISOString().split('T')[0],
+    selectedDate: getLocalDateString(new Date()),
     activeRoutine: 'Morning',
     routines: INITIAL_ROUTINES,
     quests: INITIAL_QUESTS,
@@ -169,7 +176,7 @@ const appReducer = (state: AppState, action: Action): AppState => {
         }
         case 'INCREMENT_CHARACTER_QUEST': {
             const questId = action.payload;
-            const today = new Date().toISOString().split('T')[0];
+            const today = getLocalDateString(new Date());
             const quest = state.characterQuests.find(q => q.id === questId);
             const isCompleting = quest && quest.progress + 1 >= quest.goal;
             return {
@@ -240,7 +247,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     const loadStateFromRemote = React.useCallback(async () => {
         dispatch({ type: 'SET_LOADING', payload: true });
-        const todayDate = new Date().toISOString().split('T')[0];
+        const todayDate = getLocalDateString(new Date());
 
         try {
             const profile = await getUserProfile();

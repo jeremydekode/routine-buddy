@@ -56,7 +56,14 @@ export const ChildMode: React.FC = () => {
     
     const selectedRoutineData = activeRoutine in routines ? routines[activeRoutine as ActiveRoutineId] : null;
 
-    const isToday = new Date().toISOString().split('T')[0] === selectedDate;
+    const isToday = React.useMemo(() => {
+        const today = new Date();
+        const date = new Date(selectedDate.replace(/-/g, '/'));
+        return date.getFullYear() === today.getFullYear() &&
+               date.getMonth() === today.getMonth() &&
+               date.getDate() === today.getDate();
+    }, [selectedDate]);
+
     const selectedDay = React.useMemo(() => DAYS_OF_WEEK[new Date(selectedDate).getUTCDay()], [selectedDate]);
 
     const areAllDailyTasksComplete = React.useMemo(() => {
@@ -105,9 +112,7 @@ export const ChildMode: React.FC = () => {
         return `Good evening, ${childName}!`;
     };
 
-    const dateDisplay = isToday
-        ? "Today"
-        : new Date(selectedDate.replace(/-/g, '/')).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
+    const dateDisplay = new Date(selectedDate.replace(/-/g, '/')).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
 
     // FIX: Redefine AvailableRoutine and use a type assertion to fix the type error.
     // This interface correctly represents both real routines and pseudo-routines like Quests.

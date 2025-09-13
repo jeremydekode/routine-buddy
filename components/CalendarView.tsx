@@ -39,7 +39,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onClose }) => {
         const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
 
         return (
-            <div className="grid grid-cols-7 gap-1 text-center text-sm">
+            <div className="grid grid-cols-7 gap-2 text-center text-sm">
                 {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, index) => (
                     <div key={index} className="font-bold text-slate-500">{day}</div>
                 ))}
@@ -52,7 +52,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onClose }) => {
                     
                     const hasCompletedTasks = (taskHistory[dateString]?.length || 0) > 0;
                     
-                    let dayClasses = 'w-9 h-9 rounded-full transition-all duration-200 ease-in-out flex items-center justify-center font-semibold relative';
+                    let dayClasses = 'w-10 h-10 rounded-full transition-all duration-200 ease-in-out flex items-center justify-center font-semibold relative';
 
                     if (isSelected) {
                         dayClasses += ' bg-purple-600 text-white shadow-lg scale-110';
@@ -80,7 +80,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onClose }) => {
     };
 
     return (
-        <div className="bg-white/95 backdrop-blur-sm p-4 rounded-2xl shadow-lg w-full max-w-xs border border-slate-200/50">
+        <div className="bg-white/95 backdrop-blur-sm p-4 rounded-2xl shadow-lg w-full max-w-sm border border-slate-200/50">
             <div className="flex justify-between items-center mb-3">
                 <button onClick={() => changeMonth(-1)} className="p-1 rounded-full hover:bg-slate-200">
                     <ChevronLeftIcon className="w-5 h-5 text-slate-600" />
