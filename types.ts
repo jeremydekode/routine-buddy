@@ -63,11 +63,6 @@ export interface StarAdjustmentLogEntry {
     reason: string;
 }
 
-export interface PendingRoutineApproval {
-    routineId: ActiveRoutineId;
-    date: string;
-}
-
 export interface AppState {
     mode: Mode;
     selectedDate: string;
@@ -82,7 +77,6 @@ export interface AppState {
     starCount: number;
     weeklyQuestPending: boolean;
     monthlyQuestPending: boolean;
-    pendingRoutineApprovals: PendingRoutineApproval[];
     starAdjustmentLog: StarAdjustmentLogEntry[];
     childName: string;
     playtimeDuration: number; // in minutes

@@ -71,6 +71,14 @@ interface TaskCardProps {
     selectedDate: string;
 }
 
+// FIX: Added a helper function to get the local date string to avoid timezone bugs.
+const getLocalDateString = (date: Date): string => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+};
+
 export const TaskCard: React.FC<TaskCardProps> = ({ task, routineId, selectedDate }) => {
     const { state, dispatch } = useAppContext();
     const [timer, setTimer] = React.useState<number | null>(null);
@@ -78,7 +86,8 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, routineId, selectedDat
     const [showConfetti, setShowConfetti] = React.useState(false);
     const [isBouncing, setIsBouncing] = React.useState(false);
     
-    const today = new Date().toISOString().split('T')[0];
+    // FIX: Use the local date for "today" to prevent tasks from becoming read-only prematurely in some timezones.
+    const today = getLocalDateString(new Date());
     const isReadOnly = selectedDate !== today;
 
     const isCompleted = state.taskHistory[selectedDate]?.includes(task.id) ?? false;

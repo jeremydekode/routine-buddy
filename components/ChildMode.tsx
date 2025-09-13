@@ -1,4 +1,5 @@
 
+
 import * as React from 'react';
 import { useAppContext } from '../hooks/useAppContext';
 import { RoutineView } from './RoutineView';
@@ -50,40 +51,23 @@ const NavButton: React.FC<NavButtonProps> = ({ label, icon, onClick, isActive, i
 export const ChildMode: React.FC = () => {
     const { state, dispatch } = useAppContext();
     const { routines, activeRoutine, selectedDate, childName, enablePlaytime, enableMorning, enableAfterSchool, enableBedtime, enableCharacterQuests } = state;
-    const [showPlaytimeHint, setShowPlaytimeHint] = React.useState(false);
+    const [playtimeHint, setPlaytimeHint] = React.useState<string | null>(null);
     
     const selectedRoutineData = activeRoutine in routines ? routines[activeRoutine as ActiveRoutineId] : null;
 
-    const isToday = React.useMemo(() => {
-        const today = new Date();
-        const date = new Date(selectedDate.replace(/-/g, '/'));
-        return date.getFullYear() === today.getFullYear() &&
-               date.getMonth() === today.getMonth() &&
-               date.getDate() === today.getDate();
-    }, [selectedDate]);
+    const selectedDay = React.useMemo(() => DAYS_OF_WEEK[new Date(selectedDate.replace(/-/g, '/')).getDay()], [selectedDate]);
 
-    const selectedDay = React.useMemo(() => DAYS_OF_WEEK[new Date(selectedDate).getUTCDay()], [selectedDate]);
+    const isPlaytimeUnlocked = React.useMemo(() => {
+        // Playtime is only unlocked if the Bedtime routine is enabled and fully completed for the selected day.
+        if (!enableBedtime) return false;
 
-    const areAllDailyTasksComplete = React.useMemo(() => {
-        // Playtime is a reward for today's tasks
-        if (!isToday) return false;
-
-        const enabledRoutines: ActiveRoutineId[] = [];
-        if (enableMorning) enabledRoutines.push('Morning');
-        if (enableAfterSchool) enabledRoutines.push('After-School');
-        if (enableBedtime) enabledRoutines.push('Bedtime');
-
-        if (enabledRoutines.length === 0) return true;
-
-        const allTasksForDay = enabledRoutines.flatMap(routineId => 
-            routines[routineId].tasks.filter(t => t.days.includes(selectedDay))
-        );
-
-        if (allTasksForDay.length === 0) return true;
+        const bedtimeTasksForDay = routines.Bedtime.tasks.filter(t => t.days.includes(selectedDay));
+        // If there are no bedtime tasks for today, it's not considered "completable" to unlock playtime.
+        if (bedtimeTasksForDay.length === 0) return false;
 
         const completedTasks = state.taskHistory[selectedDate] || [];
-        return allTasksForDay.every(task => completedTasks.includes(task.id));
-    }, [routines, state.taskHistory, selectedDate, selectedDay, isToday, enableMorning, enableAfterSchool, enableBedtime]);
+        return bedtimeTasksForDay.every(task => completedTasks.includes(task.id));
+    }, [routines, state.taskHistory, selectedDate, selectedDay, enableBedtime]);
 
 
     const progress = React.useMemo(() => {
@@ -155,9 +139,10 @@ export const ChildMode: React.FC = () => {
     const activeColorHex = activeTheme ? colorClassToHex[getNavColor(activeTheme.color).replace('bg-', '')] || '#a855f7' : '#a855f7';
 
     const handleLockedPlaytimeClick = () => {
-        setShowPlaytimeHint(true);
+        const message = "Complete your Bedtime routine to unlock!";
+        setPlaytimeHint(message);
         setTimeout(() => {
-            setShowPlaytimeHint(false);
+            setPlaytimeHint(null);
         }, 3000);
     };
 
@@ -182,9 +167,9 @@ export const ChildMode: React.FC = () => {
                 </main>
             </div>
             
-            {showPlaytimeHint && (
-                 <div className="fixed bottom-28 left-1/2 -translate-x-1/2 z-40 bg-slate-800 text-white text-sm font-bold px-4 py-2 rounded-full shadow-lg">
-                    Finish today's routines to unlock playtime!
+            {playtimeHint && (
+                 <div className="fixed bottom-28 left-1/2 -translate-x-1/2 z-40 bg-slate-800 text-white text-sm font-bold px-4 py-2 rounded-full shadow-lg text-center">
+                    {playtimeHint}
                 </div>
             )}
 
@@ -195,7 +180,7 @@ export const ChildMode: React.FC = () => {
                         style={{ ...gliderStyle, backgroundColor: activeColorHex }}
                     />
                     {availableRoutines.map((routine) => {
-                        const isPlaytimeLocked = routine.id === 'Playtime' && !areAllDailyTasksComplete;
+                        const isPlaytimeLocked = routine.id === 'Playtime' && !isPlaytimeUnlocked;
                         return (
                             <NavButton
                                 key={routine.id}

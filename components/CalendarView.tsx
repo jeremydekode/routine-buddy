@@ -1,4 +1,5 @@
 
+
 import * as React from 'react';
 import { useAppContext } from '../hooks/useAppContext';
 import { ChevronLeftIcon, ChevronRightIcon } from './icons/Icons';
@@ -6,6 +7,13 @@ import { ChevronLeftIcon, ChevronRightIcon } from './icons/Icons';
 interface CalendarViewProps {
     onClose: () => void;
 }
+
+const getLocalDateString = (date: Date): string => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+};
 
 export const CalendarView: React.FC<CalendarViewProps> = ({ onClose }) => {
     const { state, dispatch } = useAppContext();
@@ -16,7 +24,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onClose }) => {
     today.setHours(0, 0, 0, 0);
 
     const handleDateSelect = (day: Date) => {
-        dispatch({ type: 'SET_SELECTED_DATE', payload: day.toISOString().split('T')[0] });
+        dispatch({ type: 'SET_SELECTED_DATE', payload: getLocalDateString(day) });
         onClose();
     };
     
@@ -42,7 +50,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onClose }) => {
                 {blanks.map((_, i) => <div key={`blank-${i}`}></div>)}
                 {days.map(day => {
                     const date = new Date(year, month, day);
-                    const dateString = date.toISOString().split('T')[0];
+                    const dateString = getLocalDateString(date);
                     const isSelected = dateString === selectedDate;
                     const isToday = date.getTime() === today.getTime();
                     

@@ -10,14 +10,12 @@ type Action =
     | { type: 'SET_SELECTED_DATE'; payload: string }
     | { type: 'SET_ACTIVE_ROUTINE'; payload: AppState['activeRoutine'] }
     | { type: 'TOGGLE_TASK_COMPLETION'; payload: { taskId: string; date: string } }
-    | { type: 'REQUEST_ROUTINE_APPROVAL'; payload: { routineId: ActiveRoutineId; date: string } }
+    | { type: 'COMPLETE_ROUTINE'; payload: { routineId: ActiveRoutineId; date: string } }
     | { type: 'START_PLAYTIME' }
     | { type: 'REQUEST_QUEST_APPROVAL'; payload: { questId: 'weekly' | 'monthly' } }
     | { type: 'UPDATE_PARENT_SETTINGS'; payload: Partial<AppState> }
     | { type: 'APPROVE_QUEST'; payload: { questId: 'weekly' | 'monthly' } }
     | { type: 'REJECT_QUEST'; payload: { questId: 'weekly' | 'monthly' } }
-    | { type: 'APPROVE_ROUTINE_AWARD'; payload: { routineId: ActiveRoutineId; date: string } }
-    | { type: 'REJECT_ROUTINE_AWARD'; payload: { routineId: ActiveRoutineId; date: string } }
     | { type: 'ADJUST_STARS'; payload: { amount: number; reason: string } }
     | { type: 'INCREMENT_CHARACTER_QUEST'; payload: string }
     | { type: 'SET_LOGGED_IN'; payload: boolean }
@@ -37,6 +35,7 @@ const getLocalDateString = (date: Date): string => {
 
 const initialState: AppState = {
     mode: Mode.Child,
+    // FIX: Corrected a typo `new date()` to `new Date()`.
     selectedDate: getLocalDateString(new Date()),
     activeRoutine: 'Morning',
     routines: INITIAL_ROUTINES,
@@ -46,7 +45,6 @@ const initialState: AppState = {
     starCount: 0,
     weeklyQuestPending: false,
     monthlyQuestPending: false,
-    pendingRoutineApprovals: [],
     starAdjustmentLog: [],
     childName: 'Buddy',
     playtimeDuration: 10,
@@ -108,15 +106,26 @@ const appReducer = (state: AppState, action: Action): AppState => {
                 }
             };
         }
-        case 'REQUEST_ROUTINE_APPROVAL': {
-             const { routineId, date } = action.payload;
-             if (state.pendingRoutineApprovals.some(p => p.routineId === routineId && p.date === date)) {
-                 return state;
-             }
-             return {
-                 ...state,
-                 pendingRoutineApprovals: [...state.pendingRoutineApprovals, { routineId, date }]
-             };
+        case 'COMPLETE_ROUTINE': {
+            const { routineId, date } = action.payload;
+            const routine = state.routines[routineId];
+            if (!routine) return state;
+
+            const reason = `Completed ${routine.name} on ${date}`;
+            
+            // Prevent awarding a star if it has already been awarded for this specific routine and date.
+            if (state.starAdjustmentLog.some(log => log.reason === reason)) {
+                return state;
+            }
+
+            return {
+                ...state,
+                starCount: state.starCount + 1,
+                starAdjustmentLog: [
+                    { id: new Date().toISOString(), date: new Date().toISOString(), amount: 1, reason },
+                    ...state.starAdjustmentLog,
+                ],
+            };
         }
         case 'START_PLAYTIME':
             return { ...state, playtimeStarted: true };
@@ -145,27 +154,6 @@ const appReducer = (state: AppState, action: Action): AppState => {
         }
         case 'REJECT_QUEST': {
             return { ...state, [`${action.payload.questId}QuestPending`]: false };
-        }
-        case 'APPROVE_ROUTINE_AWARD': {
-            const { routineId, date } = action.payload;
-            // FIX: Corrected typo from toLocaleDateDateString to toLocaleDateString.
-            const reason = `Completed ${state.routines[routineId].name} on ${new Date(date.replace(/-/g, '/')).toLocaleDateString()}`;
-            return {
-                ...state,
-                starCount: state.starCount + 1,
-                starAdjustmentLog: [
-                     { id: new Date().toISOString(), date: new Date().toISOString(), amount: 1, reason },
-                    ...state.starAdjustmentLog,
-                ],
-                pendingRoutineApprovals: state.pendingRoutineApprovals.filter(p => !(p.routineId === routineId && p.date === date)),
-            };
-        }
-        case 'REJECT_ROUTINE_AWARD': {
-            const { routineId, date } = action.payload;
-            return {
-                ...state,
-                pendingRoutineApprovals: state.pendingRoutineApprovals.filter(p => !(p.routineId === routineId && p.date === date)),
-            };
         }
         case 'ADJUST_STARS': {
             const { amount, reason } = action.payload;

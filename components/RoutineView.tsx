@@ -1,4 +1,5 @@
 
+
 import * as React from 'react';
 import { Routine, Day, DAYS_OF_WEEK } from '../types';
 import { TaskCard } from './TaskCard';
@@ -10,25 +11,21 @@ interface RoutineViewProps {
     selectedDate: string;
 }
 
-const CompletedStamp: React.FC<{ isPending: boolean }> = ({ isPending }) => (
+const CompletedStamp: React.FC = () => (
     <div className="absolute inset-0 bg-white/50 backdrop-blur-sm flex items-center justify-center rounded-2xl z-10 pointer-events-none">
-        <div className={`transform -rotate-12 border-4 ${isPending ? 'border-amber-400' : 'border-green-400'} rounded-lg p-4 text-center`}>
-            <h3 className={`text-4xl font-black ${isPending ? 'text-amber-500' : 'text-green-500'} uppercase tracking-wider`}>
-                {isPending ? 'For Review' : 'Completed!'}
+        <div className="transform -rotate-12 border-4 border-green-400 rounded-lg p-4 text-center">
+            <h3 className="text-4xl font-black text-green-500 uppercase tracking-wider">
+                Completed!
             </h3>
-            {isPending ? (
-                 <p className="text-sm font-bold text-amber-600 mt-2">Waiting for parent approval</p>
-            ) : (
-                <StarIcon className="w-10 h-10 text-yellow-400 mx-auto mt-2" />
-            )}
+            <StarIcon className="w-10 h-10 text-yellow-400 mx-auto mt-2" />
         </div>
     </div>
 );
 
 export const RoutineView: React.FC<RoutineViewProps> = ({ routine, selectedDate }) => {
     const { state, dispatch } = useAppContext();
-    const { taskHistory, pendingRoutineApprovals } = state;
-    const selectedDay = React.useMemo(() => DAYS_OF_WEEK[new Date(selectedDate).getUTCDay()], [selectedDate]);
+    const { taskHistory } = state;
+    const selectedDay = React.useMemo(() => DAYS_OF_WEEK[new Date(selectedDate.replace(/-/g, '/')).getDay()], [selectedDate]);
     
     if (!routine) return null;
 
@@ -40,19 +37,16 @@ export const RoutineView: React.FC<RoutineViewProps> = ({ routine, selectedDate 
         return tasksForSelectedDay.every(task => completedTasks.includes(task.id));
     }, [tasksForSelectedDay, taskHistory, selectedDate]);
 
-    const isPending = React.useMemo(() => {
-        return pendingRoutineApprovals.some(p => p.routineId === routine.id && p.date === selectedDate);
-    }, [pendingRoutineApprovals, routine.id, selectedDate]);
-
     React.useEffect(() => {
-        // Automatically request approval once a routine is completed, if not already pending.
-        if (isCompleted && !isPending) {
+        // Automatically award a star once a routine is completed.
+        // The reducer handles preventing duplicate stars.
+        if (isCompleted) {
             dispatch({
-                type: 'REQUEST_ROUTINE_APPROVAL',
+                type: 'COMPLETE_ROUTINE',
                 payload: { routineId: routine.id, date: selectedDate }
             });
         }
-    }, [isCompleted, isPending, routine.id, selectedDate, dispatch]);
+    }, [isCompleted, routine.id, selectedDate, dispatch]);
 
 
     if (tasksForSelectedDay.length === 0) {
@@ -65,7 +59,7 @@ export const RoutineView: React.FC<RoutineViewProps> = ({ routine, selectedDate 
 
     return (
         <div className="relative">
-            {isCompleted && <CompletedStamp isPending={isPending} />}
+            {isCompleted && <CompletedStamp />}
             <div className={`space-y-4 ${isCompleted ? 'opacity-70' : ''}`}>
                 {tasksForSelectedDay.map(task => (
                     <TaskCard key={task.id} task={task} routineId={routine.id} selectedDate={selectedDate} />
