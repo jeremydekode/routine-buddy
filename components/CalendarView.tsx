@@ -10,7 +10,6 @@ interface CalendarViewProps {
 export const CalendarView: React.FC<CalendarViewProps> = ({ onClose }) => {
     const { state, dispatch } = useAppContext();
     const { selectedDate } = state;
-    // Initialize based on the globally selected date to stay in sync
     const [currentMonth, setCurrentMonth] = React.useState(new Date(selectedDate.replace(/-/g, '/')));
     
     const today = new Date();
@@ -24,12 +23,12 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onClose }) => {
     const changeMonth = (amount: number) => {
         setCurrentMonth(prev => {
             const newDate = new Date(prev);
-            newDate.setMonth(newDate.getMonth() + amount, 1); // Set to day 1 to avoid month skipping issues
+            newDate.setMonth(newDate.getMonth() + amount, 1);
             return newDate;
         });
     };
     
-    const renderCalendar = () => {
+    const renderCalendarGrid = () => {
         const month = currentMonth.getMonth();
         const year = currentMonth.getFullYear();
         const firstDayOfMonth = new Date(year, month, 1).getDay();
@@ -39,10 +38,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onClose }) => {
         const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
 
         return (
-            <div className="grid grid-cols-7 gap-y-2 text-center text-sm">
-                {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, index) => (
-                    <div key={index} className="font-bold text-slate-500 text-xs py-1">{day}</div>
-                ))}
+            <div className="grid grid-cols-7">
                 {blanks.map((_, i) => <div key={`blank-${i}`}></div>)}
                 {days.map(day => {
                     const date = new Date(year, month, day);
@@ -50,12 +46,12 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onClose }) => {
                     const isSelected = dateString === selectedDate;
                     const isToday = date.getTime() === today.getTime();
                     
-                    let dayClasses = 'w-9 h-9 rounded-full transition-all duration-200 ease-in-out flex items-center justify-center font-semibold';
+                    let dayClasses = 'w-8 h-8 rounded-full transition-colors duration-200 ease-in-out flex items-center justify-center font-semibold text-sm';
 
                     if (isSelected) {
-                        dayClasses += ' bg-purple-500 text-white shadow-md';
+                        dayClasses += ' bg-purple-600 text-white shadow-md';
                     } else if (isToday) {
-                        dayClasses += ' bg-cyan-200 text-cyan-900';
+                        dayClasses += ' bg-teal-200 text-teal-900';
                     } else {
                         dayClasses += ' text-slate-700 hover:bg-slate-100';
                     }
@@ -76,20 +72,28 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onClose }) => {
     };
 
     return (
-        <div className="bg-white/95 backdrop-blur-sm p-4 rounded-2xl shadow-lg w-full max-w-xs border border-slate-200/50">
-            <div className="flex justify-between items-center mb-3 px-1">
-                <button onClick={() => changeMonth(-1)} className="p-2 rounded-full hover:bg-slate-100 transition-colors">
-                    <ChevronLeftIcon className="w-5 h-5 text-slate-600" />
+        <div className="bg-white p-4 rounded-3xl shadow-xl w-[280px] border border-gray-100">
+            <header className="flex justify-between items-center mb-4 px-1">
+                <button onClick={() => changeMonth(-1)} className="p-1.5 rounded-full hover:bg-slate-100 transition-colors" aria-label="Previous month">
+                    <ChevronLeftIcon className="w-5 h-5 text-slate-500" />
                 </button>
-                <div className="font-bold text-slate-700 text-center leading-tight">
-                    <div>{currentMonth.toLocaleString('default', { month: 'long' })}</div>
-                    <div>{currentMonth.getFullYear()}</div>
+                <div className="font-semibold text-slate-800 text-center" aria-live="polite">
+                    <div className="text-base">{currentMonth.toLocaleString('default', { month: 'long' })}</div>
+                    <div className="text-sm text-slate-500">{currentMonth.getFullYear()}</div>
                 </div>
-                 <button onClick={() => changeMonth(1)} className="p-2 rounded-full hover:bg-slate-100 transition-colors">
-                    <ChevronRightIcon className="w-5 h-5 text-slate-600" />
+                 <button onClick={() => changeMonth(1)} className="p-1.5 rounded-full hover:bg-slate-100 transition-colors" aria-label="Next month">
+                    <ChevronRightIcon className="w-5 h-5 text-slate-500" />
                 </button>
-            </div>
-            {renderCalendar()}
+            </header>
+            
+            <main>
+                <div className="grid grid-cols-7 text-center text-xs text-slate-400 font-bold mb-2">
+                    {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day) => (
+                        <div key={day} className="py-1">{day}</div>
+                    ))}
+                </div>
+                {renderCalendarGrid()}
+            </main>
         </div>
     );
 };
