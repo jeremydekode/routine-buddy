@@ -1,4 +1,3 @@
-
 import * as React from 'react';
 import { useAppContext } from '../hooks/useAppContext';
 import { Quest } from '../types';
@@ -73,7 +72,40 @@ const QuestProgress: React.FC<QuestProgressProps> = ({ quest, currentStars, isPe
 
 const StarQuests: React.FC = () => {
     const { state } = useAppContext();
-    const { quests, starCount, weeklyQuestPending, monthlyQuestPending } = state;
+    const { quests, starCount, weeklyQuestPending, monthlyQuestPending, weeklyQuestResetEnabled, monthlyQuestResetEnabled, starAdjustmentLog } = state;
+
+    const getStartOfWeek = React.useCallback((date: Date): Date => {
+        const d = new Date(date);
+        const day = d.getDay();
+        const diff = d.getDate() - day + (day === 0 ? -6 : 1); // adjust when day is sunday
+        d.setDate(diff);
+        d.setHours(0, 0, 0, 0);
+        return d;
+    }, []);
+
+    const getStartOfMonth = React.useCallback((date: Date): Date => {
+        const d = new Date(date);
+        d.setDate(1);
+        d.setHours(0, 0, 0, 0);
+        return d;
+    }, []);
+
+    const starsEarnedThisWeek = React.useMemo(() => {
+        if (!weeklyQuestResetEnabled) return starCount;
+        const startOfWeek = getStartOfWeek(new Date());
+        return starAdjustmentLog
+            .filter(log => new Date(log.date) >= startOfWeek && log.amount > 0)
+            .reduce((sum, log) => sum + log.amount, 0);
+    }, [starAdjustmentLog, weeklyQuestResetEnabled, starCount, getStartOfWeek]);
+
+    const starsEarnedThisMonth = React.useMemo(() => {
+        if (!monthlyQuestResetEnabled) return starCount;
+        const startOfMonth = getStartOfMonth(new Date());
+        return starAdjustmentLog
+            .filter(log => new Date(log.date) >= startOfMonth && log.amount > 0)
+            .reduce((sum, log) => sum + log.amount, 0);
+    }, [starAdjustmentLog, monthlyQuestResetEnabled, starCount, getStartOfMonth]);
+
     return (
         <div className="space-y-4">
              <style>{`
@@ -90,7 +122,7 @@ const StarQuests: React.FC = () => {
             </div>
             <QuestProgress
                 quest={quests.weekly}
-                currentStars={starCount}
+                currentStars={starsEarnedThisWeek}
                 isPending={weeklyQuestPending}
                 colors={{
                     bg: 'bg-amber-100',
@@ -101,7 +133,7 @@ const StarQuests: React.FC = () => {
             />
              <QuestProgress
                 quest={quests.monthly}
-                currentStars={starCount}
+                currentStars={starsEarnedThisMonth}
                 isPending={monthlyQuestPending}
                 colors={{
                     bg: 'bg-sky-100',

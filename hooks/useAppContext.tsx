@@ -47,6 +47,8 @@ const initialState: AppState = {
     enableAfterSchool: true,
     enableBedtime: true,
     enableCharacterQuests: true,
+    weeklyQuestResetEnabled: false,
+    monthlyQuestResetEnabled: false,
     isLoading: true,
     isLoggedIn: false,
     showPasswordModal: false,
@@ -135,6 +137,7 @@ const appReducer = (state: AppState, action: Action): AppState => {
         }
         case 'APPROVE_ROUTINE_AWARD': {
             const { routineId, date } = action.payload;
+            // FIX: Corrected typo from toLocaleDateDateString to toLocaleDateString.
             const reason = `Completed ${state.routines[routineId].name} on ${new Date(date.replace(/-/g, '/')).toLocaleDateString()}`;
             return {
                 ...state,
@@ -237,6 +240,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     const loadStateFromRemote = React.useCallback(async () => {
         dispatch({ type: 'SET_LOADING', payload: true });
+        const todayDate = new Date().toISOString().split('T')[0];
+
         try {
             const profile = await getUserProfile();
             const remoteState = profile?.app_state as Partial<AppState> | null;
@@ -252,14 +257,28 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                         remoteRoutine.theme = initialRoutine.theme;
                     }
                 });
-                dispatch({ type: 'SET_STATE', payload: { ...remoteState, isLoggedIn: true } });
+                
+                // Daily reset logic: Check the last active date from task history.
+                const lastActiveDate = remoteState.taskHistory ? Object.keys(remoteState.taskHistory).sort().pop() : null;
+                const isNewDay = lastActiveDate !== todayDate;
+
+                dispatch({ 
+                    type: 'SET_STATE', 
+                    payload: { 
+                        ...remoteState, 
+                        selectedDate: todayDate, 
+                        // Reset playtime if it's a new day
+                        playtimeStarted: isNewDay ? false : remoteState.playtimeStarted,
+                        isLoggedIn: true 
+                    } 
+                });
             } else {
                 console.log("ℹ️ No valid remote state found for user. Initializing with default state.");
-                dispatch({ type: 'SET_STATE', payload: { ...initialState, isLoggedIn: true, isLoading: false } });
+                dispatch({ type: 'SET_STATE', payload: { ...initialState, selectedDate: todayDate, isLoggedIn: true, isLoading: false } });
             }
         } catch (error) {
             console.error("❌ Critical error during state loading. Resetting to default state.", error);
-            dispatch({ type: 'SET_STATE', payload: { ...initialState, isLoggedIn: true, isLoading: false } });
+            dispatch({ type: 'SET_STATE', payload: { ...initialState, selectedDate: todayDate, isLoggedIn: true, isLoading: false } });
         }
     }, []);
     

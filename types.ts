@@ -92,6 +92,8 @@ export interface AppState {
     enableAfterSchool: boolean;
     enableBedtime: boolean;
     enableCharacterQuests: boolean;
+    weeklyQuestResetEnabled: boolean;
+    monthlyQuestResetEnabled: boolean;
     isLoading: boolean;
     isLoggedIn: boolean;
     showPasswordModal: boolean;

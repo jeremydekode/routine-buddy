@@ -1,7 +1,7 @@
-
 import * as React from 'react';
 import { Quest } from '../types';
 import { TrophyIcon } from './icons/Icons';
+import { ToggleSwitch } from './ToggleSwitch';
 
 interface QuestEditorCardProps {
     quest: Quest;
@@ -53,9 +53,20 @@ const QuestEditorCard: React.FC<QuestEditorCardProps> = ({ quest, onUpdate, titl
 interface QuestConfiguratorProps {
     quests: { weekly: Quest; monthly: Quest };
     onQuestsChange: (quests: { weekly: Quest; monthly: Quest }) => void;
+    weeklyQuestResetEnabled: boolean;
+    onWeeklyQuestResetEnabledChange: (enabled: boolean) => void;
+    monthlyQuestResetEnabled: boolean;
+    onMonthlyQuestResetEnabledChange: (enabled: boolean) => void;
 }
 
-export const QuestConfigurator: React.FC<QuestConfiguratorProps> = ({ quests, onQuestsChange }) => {
+export const QuestConfigurator: React.FC<QuestConfiguratorProps> = ({ 
+    quests, 
+    onQuestsChange,
+    weeklyQuestResetEnabled,
+    onWeeklyQuestResetEnabledChange,
+    monthlyQuestResetEnabled,
+    onMonthlyQuestResetEnabledChange 
+}) => {
     
     const handleUpdateQuest = (quest: Quest) => {
         const newQuests = { ...quests };
@@ -83,6 +94,24 @@ export const QuestConfigurator: React.FC<QuestConfiguratorProps> = ({ quests, on
                     onUpdate={handleUpdateQuest}
                     colors={{ bg: 'bg-sky-50', text: 'text-sky-600' }}
                 />
+            </div>
+
+            <div className="mt-8 pt-6 border-t border-slate-200">
+                <h3 className="text-xl font-bold text-slate-700 mb-4">Quest Resets</h3>
+                <div className="space-y-4 bg-slate-50 p-4 rounded-xl">
+                    <ToggleSwitch
+                        label="Enable Weekly Reset"
+                        checked={weeklyQuestResetEnabled}
+                        onChange={onWeeklyQuestResetEnabledChange}
+                        description="Progress for the weekly quest will reset every Monday at 12 AM."
+                    />
+                    <ToggleSwitch
+                        label="Enable Monthly Reset"
+                        checked={monthlyQuestResetEnabled}
+                        onChange={onMonthlyQuestResetEnabledChange}
+                        description="Progress for the monthly quest will reset on the 1st of each month at 12 AM."
+                    />
+                </div>
             </div>
         </div>
     );

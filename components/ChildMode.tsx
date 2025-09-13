@@ -161,21 +161,22 @@ export const ChildMode: React.FC = () => {
 
     return (
         <div className="relative">
-             <div className="absolute top-5 right-0 z-10">
-                <button onClick={() => setIsCalendarOpen(!isCalendarOpen)} className="p-3 rounded-full bg-white/70 backdrop-blur-sm shadow-md hover:bg-white transition-all">
-                    <CalendarIcon className="w-6 h-6 text-purple-600" />
-                </button>
-                 {isCalendarOpen && (
-                    <div className="absolute top-full mt-2 right-0 z-30">
-                        <CalendarView onClose={() => setIsCalendarOpen(false)} />
-                    </div>
-                )}
-            </div>
-
             <div className="pt-20 pb-28">
-                <header className="text-center mb-6">
-                    <h1 className="text-3xl md:text-4xl font-bold text-slate-800">{getGreeting()}</h1>
-                    <p className="font-semibold text-slate-500 mt-2">{dateDisplay}</p>
+                <header className="relative flex justify-center items-center mb-6">
+                    <div className="text-center">
+                        <h1 className="text-3xl md:text-4xl font-bold text-slate-800">{getGreeting()}</h1>
+                        <p className="font-semibold text-slate-500 mt-2">{dateDisplay}</p>
+                    </div>
+                    <div className="absolute top-1/2 -translate-y-1/2 right-0 z-10">
+                        <button onClick={() => setIsCalendarOpen(!isCalendarOpen)} className="p-3 rounded-full bg-white/70 backdrop-blur-sm shadow-md hover:bg-white transition-all">
+                            <CalendarIcon className="w-6 h-6 text-purple-600" />
+                        </button>
+                        {isCalendarOpen && (
+                            <div className="absolute top-full mt-2 right-0 z-30">
+                                <CalendarView onClose={() => setIsCalendarOpen(false)} />
+                            </div>
+                        )}
+                    </div>
                 </header>
 
                 <main>
