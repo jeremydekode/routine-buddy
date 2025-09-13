@@ -1,8 +1,10 @@
 import * as React from 'react';
 import { signInWithGoogle } from '../services/supabase';
 import { SunIcon, GoogleIcon } from './icons/Icons';
+import { useAppContext } from '../hooks/useAppContext';
 
 export const Auth: React.FC = () => {
+    const { dispatch } = useAppContext();
     const [loading, setLoading] = React.useState(false);
     const [error, setError] = React.useState<string | null>(null);
 
@@ -34,6 +36,10 @@ export const Auth: React.FC = () => {
         // On successful initiation, Supabase redirects to Google.
         // The onAuthStateChange listener in AppContext will handle the successful login upon return.
     };
+    
+    const handleGuestSignIn = () => {
+        dispatch({ type: 'SIGN_IN_AS_GUEST' });
+    };
 
     return (
         <div className="min-h-screen bg-slate-100 flex flex-col items-center justify-center p-4">
@@ -59,6 +65,19 @@ export const Auth: React.FC = () => {
 
                         {error && <p className="text-red-500 text-sm text-center pt-2">{error}</p>}
                     </div>
+                    
+                    <div className="relative flex py-5 items-center">
+                        <div className="flex-grow border-t border-slate-200"></div>
+                        <span className="flex-shrink mx-4 text-slate-400 text-sm font-semibold">OR</span>
+                        <div className="flex-grow border-t border-slate-200"></div>
+                    </div>
+
+                    <button
+                        onClick={handleGuestSignIn}
+                        className="w-full text-center text-slate-500 font-bold py-2 rounded-lg hover:text-purple-600 hover:bg-purple-50 transition"
+                    >
+                        Continue as Guest
+                    </button>
                 </div>
             </div>
         </div>

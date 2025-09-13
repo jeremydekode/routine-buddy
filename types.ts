@@ -97,4 +97,5 @@ export interface AppState {
     isLoading: boolean;
     isLoggedIn: boolean;
     showPasswordModal: boolean;
+    isGuest: boolean;
 }

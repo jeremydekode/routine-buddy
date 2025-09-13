@@ -1,7 +1,7 @@
-
 import * as React from 'react';
 import { signOut } from '../services/supabase';
 import { ToggleSwitch } from './ToggleSwitch';
+import { useAppContext } from '../hooks/useAppContext';
 
 interface ProfileConfiguratorProps {
     childName: string;
@@ -29,6 +29,8 @@ export const ProfileConfigurator: React.FC<ProfileConfiguratorProps> = ({
     enableBedtime, onEnableBedtimeChange,
     enableCharacterQuests, onEnableCharacterQuestsChange
 }) => {
+    const { state } = useAppContext();
+    const { isGuest } = state;
 
     const handleSignOut = async () => {
         await signOut();
@@ -125,13 +127,16 @@ export const ProfileConfigurator: React.FC<ProfileConfiguratorProps> = ({
                      <div className="bg-slate-50 p-4 rounded-xl">
                         <p className="text-sm font-medium text-slate-700 mb-2">Account Actions</p>
                         <p className="text-xs text-slate-500 mb-3">
-                            You are logged in. Sign out to switch accounts or secure the app.
+                             {isGuest
+                                ? "Exit guest mode to sign in and save your progress."
+                                : "You are logged in. Sign out to switch accounts or secure the app."
+                            }
                         </p>
                         <button
                             onClick={handleSignOut}
                             className="w-full sm:w-auto bg-red-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-red-600 transition"
                         >
-                            Sign Out
+                            {isGuest ? 'Exit Guest Mode' : 'Sign Out'}
                         </button>
                     </div>
                 </div>

@@ -1,0 +1,16 @@
+{
+  "short_name": "Routine Buddy",
+  "name": "Routine Buddy",
+  "icons": [
+    {
+      "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSIzMCIgZmlsbD0iI0ZCQUYyNCIvPjxwYXRoIGQ9Ik01MCAwIFYxNSBNNTAgODUgVjEwMCBNMCA1MCBIMTUgTTg1IDUwIEgxMDAgTTE1IDE1IEwyNSAyNSBNNzUgNzUgTDg1IDg1IE0xNSA4NSBMMjUgNzUgTTc1IDI1IEw4NSAxNSIgc3Ryb2tlPSIjRkJBQjI0IiBzdHJva2Utd2lkdGg9IjgiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPjwvc3ZnPg==",
+      "type": "image/svg+xml",
+      "sizes": "192x192 512x512"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "scope": "/",
+  "theme_color": "#f1f5f9",
+  "background_color": "#f1f5f9"
+}

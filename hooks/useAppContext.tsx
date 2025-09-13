@@ -24,7 +24,8 @@ type Action =
     | { type: 'SHOW_PASSWORD_MODAL' }
     | { type: 'HIDE_PASSWORD_MODAL' }
     | { type: 'SET_LOADING'; payload: boolean }
-    | { type: 'SIGN_OUT' };
+    | { type: 'SIGN_OUT' }
+    | { type: 'SIGN_IN_AS_GUEST' };
 
 const getLocalDateString = (date: Date): string => {
     const year = date.getFullYear();
@@ -59,6 +60,7 @@ const initialState: AppState = {
     isLoading: true,
     isLoggedIn: false,
     showPasswordModal: false,
+    isGuest: false,
 };
 
 const AppContext = React.createContext<{
@@ -76,7 +78,7 @@ const appReducer = (state: AppState, action: Action): AppState => {
         case 'TOGGLE_MODE': {
             if (state.mode === Mode.Child) {
                 const hasPassword = !!localStorage.getItem(PASSWORD_KEY);
-                if (hasPassword) {
+                if (hasPassword && !state.isGuest) { // Don't show password modal for guests
                     return { ...state, showPasswordModal: true };
                 }
             }
@@ -200,8 +202,16 @@ const appReducer = (state: AppState, action: Action): AppState => {
         }
         case 'SET_LOGGED_IN':
             return { ...state, isLoggedIn: action.payload, isLoading: false };
+        case 'SIGN_IN_AS_GUEST':
+            return {
+                ...initialState,
+                isLoggedIn: true,
+                isGuest: true,
+                isLoading: false,
+                selectedDate: getLocalDateString(new Date()),
+            };
         case 'SIGN_OUT':
-            return { ...initialState, isLoggedIn: false, isLoading: false };
+            return { ...initialState, isLoggedIn: false, isLoading: false, isGuest: false };
         case 'SET_LOADING':
             return { ...state, isLoading: action.payload };
         default:
@@ -216,7 +226,7 @@ const appReducer = (state: AppState, action: Action): AppState => {
  * @returns A serializable, partial state object ready for persistence.
  */
 const prepareStateForSaving = (stateToPrepare: AppState): Partial<AppState> => {
-    const { isLoading, isLoggedIn, showPasswordModal, mode, ...persistableState } = stateToPrepare;
+    const { isLoading, isLoggedIn, showPasswordModal, mode, isGuest, ...persistableState } = stateToPrepare;
     try {
         // Deep clone to avoid mutations and handle JSON-safe conversion
         const clonedState = JSON.parse(JSON.stringify(persistableState));
@@ -315,9 +325,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     // Debounced effect for persisting state to Supabase
     React.useEffect(() => {
-        const { isLoggedIn, isLoading } = state;
-        // Guard clauses: don't save if not logged in or if loading initial state.
-        if (!isLoggedIn || isLoading) {
+        const { isLoggedIn, isLoading, isGuest } = state;
+        // Guard clauses: don't save if not logged in, if loading initial state, or if in guest mode.
+        if (!isLoggedIn || isLoading || isGuest) {
             return;
         }
 

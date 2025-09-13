@@ -98,6 +98,13 @@ export const ParentMode: React.FC = () => {
                  <h1 className="text-4xl md:text-5xl font-bold text-slate-800">Parent Zone</h1>
                  <p className="text-slate-500">Manage routines, rewards, and insights.</p>
             </header>
+
+            {state.isGuest && (
+                <div className="bg-amber-100 border-l-4 border-amber-500 text-amber-700 p-4 rounded-lg mb-6" role="alert">
+                    <p className="font-bold">Guest Mode</p>
+                    <p>You are currently exploring as a guest. Any changes you make will not be saved.</p>
+                </div>
+            )}
             
             <div className="bg-white rounded-xl shadow-md p-2 flex gap-1 sm:gap-2 mb-6 flex-wrap">
                 <TabButton tabName="Dashboard" icon="fa-chart-pie" />
