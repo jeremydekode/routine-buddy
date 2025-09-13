@@ -88,9 +88,8 @@ export const ImageIcon: React.FC<{ className?: string }> = ({ className }) => (
 );
 
 export const TrophyIcon: React.FC<{ className?: string }> = ({ className }) => (
-    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 18.75h-9a9 9 0 119 0z" />
-        <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v3.75m0 0h-3.75M12 18.75h3.75M9 13.5V9A3 3 0 0112 6v3.75m3 0V9A3 3 0 0012 6v3.75m-3 0h3.75" />
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className={className}>
+        <path fillRule="evenodd" d="M15.97 2.47a.75.75 0 0 1 1.06 0l.94.94a.75.75 0 0 1 0 1.06l-1.82 1.82a.75.75 0 0 1-1.06 0l-.94-.94a.75.75 0 0 1 0-1.06l1.82-1.82ZM12.75 6a.75.75 0 0 0-1.5 0v1.5a.75.75 0 0 0 1.5 0V6ZM5.97 2.47a.75.75 0 0 1 1.06 0l1.82 1.82a.75.75 0 0 1 0 1.06l-.94.94a.75.75 0 0 1-1.06 0L5.03 4.47a.75.75 0 0 1 0-1.06l.94-.94ZM7.5 6a.75.75 0 0 0-1.5 0v1.5a.75.75 0 0 0 1.5 0V6ZM21 9.75A.75.75 0 0 0 21.75 9h-1.5A.75.75 0 0 0 19.5 9.75v.513c0 .897-.246 1.745-.698 2.496l-.822 1.365c-.44.732-1.288 1.176-2.18 1.176h-3.6c-.892 0-1.74-.444-2.18-1.176l-.823-1.365A4.482 4.482 0 0 1 7.5 10.263V9.75A.75.75 0 0 0 6.75 9h-1.5A.75.75 0 0 0 4.5 9.75v2.41c0 1.18.344 2.293.948 3.203l.23 1.232c.15.807.82 1.39 1.636 1.391h8.372c.816 0 1.486-.583 1.636-1.39l.23-1.232c.604-.91.948-2.022.948-3.203V9.75ZM4.5 20.25a.75.75 0 0 0 .75.75h13.5a.75.75 0 0 0 0-1.5H5.25a.75.75 0 0 0-.75.75Z" clipRule="evenodd" />
     </svg>
 );
 

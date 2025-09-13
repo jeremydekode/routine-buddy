@@ -24,7 +24,6 @@ const ClaimedStamp: React.FC = () => (
             <h3 className="text-4xl font-black text-purple-600 uppercase tracking-wider">
                 Claimed
             </h3>
-            <TrophyIcon className="w-10 h-10 text-amber-500 mx-auto mt-2" />
         </div>
     </div>
 );
