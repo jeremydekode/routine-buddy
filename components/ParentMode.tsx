@@ -19,8 +19,6 @@ interface DraftState {
     enableBedtime: boolean;
     enableCharacterQuests: boolean;
     characterQuests: CharacterQuest[];
-    weeklyQuestResetEnabled: boolean;
-    monthlyQuestResetEnabled: boolean;
 }
 
 type ParentTab = 'Dashboard' | 'AI Suggestions' | 'Routines' | 'Quests' | 'Character' | 'Profile';
@@ -40,8 +38,6 @@ export const ParentMode: React.FC = () => {
         enableBedtime: state.enableBedtime,
         enableCharacterQuests: state.enableCharacterQuests,
         characterQuests: state.characterQuests,
-        weeklyQuestResetEnabled: state.weeklyQuestResetEnabled,
-        monthlyQuestResetEnabled: state.monthlyQuestResetEnabled,
     }));
     const [isDirty, setIsDirty] = React.useState(false);
 
@@ -61,8 +57,6 @@ export const ParentMode: React.FC = () => {
                 enableBedtime: state.enableBedtime,
                 enableCharacterQuests: state.enableCharacterQuests,
                 characterQuests: state.characterQuests,
-                weeklyQuestResetEnabled: state.weeklyQuestResetEnabled,
-                monthlyQuestResetEnabled: state.monthlyQuestResetEnabled,
             });
         }
     }, [state, isDirty]);
@@ -122,10 +116,6 @@ export const ParentMode: React.FC = () => {
                 {activeTab === 'Quests' && <QuestConfigurator 
                     quests={draftState.quests} 
                     onQuestsChange={(newQuests) => setDraftAndMarkDirty(s => ({ ...s, quests: newQuests }))} 
-                    weeklyQuestResetEnabled={draftState.weeklyQuestResetEnabled}
-                    onWeeklyQuestResetEnabledChange={(isEnabled) => setDraftAndMarkDirty(s => ({...s, weeklyQuestResetEnabled: isEnabled}))}
-                    monthlyQuestResetEnabled={draftState.monthlyQuestResetEnabled}
-                    onMonthlyQuestResetEnabledChange={(isEnabled) => setDraftAndMarkDirty(s => ({...s, monthlyQuestResetEnabled: isEnabled}))}
                 />}
                 {activeTab === 'Character' && <CharacterQuestConfigurator quests={draftState.characterQuests} onQuestsChange={(newQuests) => setDraftAndMarkDirty(s => ({...s, characterQuests: newQuests}))} />}
                 {activeTab === 'Profile' && <ProfileConfigurator 

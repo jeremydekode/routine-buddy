@@ -1,7 +1,8 @@
 
+
 import * as React from 'react';
 import { Quest } from '../types';
-import { ToggleSwitch } from './ToggleSwitch';
+import { useAppContext } from '../hooks/useAppContext';
 
 interface QuestEditorCardProps {
     quest: Quest;
@@ -53,27 +54,27 @@ const QuestEditorCard: React.FC<QuestEditorCardProps> = ({ quest, onUpdate, titl
 interface QuestConfiguratorProps {
     quests: { weekly: Quest; monthly: Quest };
     onQuestsChange: (quests: { weekly: Quest; monthly: Quest }) => void;
-    weeklyQuestResetEnabled: boolean;
-    onWeeklyQuestResetEnabledChange: (enabled: boolean) => void;
-    monthlyQuestResetEnabled: boolean;
-    onMonthlyQuestResetEnabledChange: (enabled: boolean) => void;
 }
 
 export const QuestConfigurator: React.FC<QuestConfiguratorProps> = ({ 
     quests, 
     onQuestsChange,
-    weeklyQuestResetEnabled,
-    onWeeklyQuestResetEnabledChange,
-    monthlyQuestResetEnabled,
-    onMonthlyQuestResetEnabledChange 
 }) => {
-    
+    const { dispatch } = useAppContext();
+
     const handleUpdateQuest = (quest: Quest) => {
         const newQuests = { ...quests };
         if (quest.id === 'weekly' || quest.id === 'monthly') {
             newQuests[quest.id] = quest;
         }
         onQuestsChange(newQuests);
+    };
+
+    const handleReset = (questId: 'weekly' | 'monthly') => {
+        const questName = questId === 'weekly' ? 'weekly' : 'monthly';
+        if (window.confirm(`Are you sure you want to reset the ${questName} quest progress? This will start a new period and cannot be undone.`)) {
+            dispatch({ type: 'MANUAL_RESET_QUEST', payload: { questId } });
+        }
     };
 
     return (
@@ -99,18 +100,26 @@ export const QuestConfigurator: React.FC<QuestConfiguratorProps> = ({
             <div className="mt-8 pt-6 border-t border-slate-200">
                 <h3 className="text-xl font-bold text-slate-700 mb-4">Quest Resets</h3>
                 <div className="space-y-4 bg-slate-50 p-4 rounded-xl">
-                    <ToggleSwitch
-                        label="Enable Weekly Reset"
-                        checked={weeklyQuestResetEnabled}
-                        onChange={onWeeklyQuestResetEnabledChange}
-                        description="Progress for the weekly quest will reset every Monday at 12 AM."
-                    />
-                    <ToggleSwitch
-                        label="Enable Monthly Reset"
-                        checked={monthlyQuestResetEnabled}
-                        onChange={onMonthlyQuestResetEnabledChange}
-                        description="Progress for the monthly quest will reset on the 1st of each month at 12 AM."
-                    />
+                    <div>
+                        <h4 className="font-medium text-slate-700">Reset Weekly Quest</h4>
+                        <p className="text-xs text-slate-500 mb-3">Manually start a new weekly period. This will reset the progress and claimed status.</p>
+                        <button
+                            onClick={() => handleReset('weekly')}
+                            className="bg-red-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-red-600 transition text-sm"
+                        >
+                            Reset Weekly Now
+                        </button>
+                    </div>
+                     <div className="pt-4 border-t border-slate-200">
+                        <h4 className="font-medium text-slate-700">Reset Monthly Quest</h4>
+                        <p className="text-xs text-slate-500 mb-3">Manually start a new monthly period. This will reset the progress and claimed status.</p>
+                        <button
+                            onClick={() => handleReset('monthly')}
+                            className="bg-red-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-red-600 transition text-sm"
+                        >
+                            Reset Monthly Now
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>

@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { useAppContext } from '../hooks/useAppContext';
 import { StarIcon } from './icons/Icons';
-import { ActiveRoutineId, QuestId, DAYS_OF_WEEK } from '../types';
+import { ActiveRoutineId, QuestId, DAYS_OF_WEEK, StarAdjustmentLogEntry } from '../types';
 
 const PendingApprovalCard: React.FC<{ questId: QuestId }> = ({ questId }) => {
     const { state, dispatch } = useAppContext();
@@ -41,10 +41,11 @@ const getLocalDateString = (date: Date): string => {
 
 export const ParentDashboard: React.FC = () => {
     const { state, dispatch } = useAppContext();
-    const { routines, starCount, weeklyQuestPending, monthlyQuestPending, starAdjustmentLog, taskHistory } = state;
+    const { routines, starCount, weeklyQuestPending, monthlyQuestPending, starAdjustmentLog, taskHistory, weeklyQuestLastResetDate, monthlyQuestLastResetDate } = state;
 
     const [adjustmentAmount, setAdjustmentAmount] = React.useState('');
     const [adjustmentReason, setAdjustmentReason] = React.useState('');
+    const [historyTab, setHistoryTab] = React.useState<'weekly' | 'monthly' | 'all'>('weekly');
 
     const stats = React.useMemo(() => {
         // FIX: Use local date and day for accurate "Today" stats, avoiding UTC-related bugs.
@@ -78,6 +79,26 @@ export const ParentDashboard: React.FC = () => {
         }
     };
 
+    const filteredLogs = React.useMemo(() => {
+        let logs: StarAdjustmentLogEntry[] = [...starAdjustmentLog].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        
+        if (historyTab === 'weekly' && weeklyQuestLastResetDate) {
+            return logs.filter(log => new Date(log.date) >= new Date(weeklyQuestLastResetDate));
+        }
+        if (historyTab === 'monthly' && monthlyQuestLastResetDate) {
+            return logs.filter(log => new Date(log.date) >= new Date(monthlyQuestLastResetDate));
+        }
+        return logs;
+    }, [starAdjustmentLog, historyTab, weeklyQuestLastResetDate, monthlyQuestLastResetDate]);
+    
+    const HistoryTabButton: React.FC<{ tab: typeof historyTab, label: string }> = ({ tab, label }) => (
+        <button
+            onClick={() => setHistoryTab(tab)}
+            className={`px-3 py-1 text-sm font-bold rounded-full transition-colors ${historyTab === tab ? 'bg-purple-500 text-white' : 'bg-slate-200 text-slate-600 hover:bg-slate-300'}`}
+        >
+            {label}
+        </button>
+    );
 
     return (
         <div>
@@ -141,10 +162,17 @@ export const ParentDashboard: React.FC = () => {
             </div>
 
              <div className="mt-8">
-                <h3 className="text-xl font-bold text-slate-700 mb-4">Star History</h3>
+                <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-xl font-bold text-slate-700">Star History</h3>
+                    <div className="flex gap-2">
+                        <HistoryTabButton tab="weekly" label="Weekly" />
+                        <HistoryTabButton tab="monthly" label="Monthly" />
+                        <HistoryTabButton tab="all" label="All Time" />
+                    </div>
+                </div>
                 <div className="space-y-2 max-h-60 overflow-y-auto bg-slate-50 p-3 rounded-lg">
-                    {starAdjustmentLog.length > 0 ? (
-                        starAdjustmentLog.map(log => (
+                    {filteredLogs.length > 0 ? (
+                        filteredLogs.map(log => (
                             <div key={log.id} className="bg-white p-3 rounded-lg flex justify-between items-center text-sm">
                                 <div>
                                     <p className="font-semibold text-slate-700">{log.reason}</p>
@@ -156,7 +184,7 @@ export const ParentDashboard: React.FC = () => {
                             </div>
                         ))
                     ) : (
-                        <p className="text-center text-slate-500 py-4">No adjustments made yet.</p>
+                        <p className="text-center text-slate-500 py-4">No adjustments in this period yet.</p>
                     )}
                 </div>
             </div>

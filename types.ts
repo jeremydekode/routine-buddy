@@ -79,6 +79,8 @@ export interface AppState {
     monthlyQuestPending: boolean;
     weeklyQuestClaimedDate: string | null;
     monthlyQuestClaimedDate: string | null;
+    weeklyQuestLastResetDate: string | null;
+    monthlyQuestLastResetDate: string | null;
     starAdjustmentLog: StarAdjustmentLogEntry[];
     childName: string;
     playtimeDuration: number; // in minutes
@@ -88,8 +90,6 @@ export interface AppState {
     enableAfterSchool: boolean;
     enableBedtime: boolean;
     enableCharacterQuests: boolean;
-    weeklyQuestResetEnabled: boolean;
-    monthlyQuestResetEnabled: boolean;
     isLoading: boolean;
     isLoggedIn: boolean;
     showPasswordModal: boolean;
