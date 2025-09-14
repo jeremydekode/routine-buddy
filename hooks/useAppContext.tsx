@@ -1,32 +1,11 @@
+
 import * as React from 'react';
-import { AppState, Mode, ActiveRoutineId } from '../types';
+import { AppState, Mode, ActiveRoutineId, QuestId } from '../types';
 import { INITIAL_ROUTINES, INITIAL_QUESTS } from '../constants';
 import { supabase, getUserProfile, updateUserProfile } from '../services/supabase';
+import { Session } from '@supabase/supabase-js';
 
-// Define action types
-type Action =
-    | { type: 'SET_STATE'; payload: Partial<AppState> }
-    | { type: 'TOGGLE_MODE' }
-    | { type: 'SET_SELECTED_DATE'; payload: string }
-    | { type: 'SET_ACTIVE_ROUTINE'; payload: AppState['activeRoutine'] }
-    | { type: 'TOGGLE_TASK_COMPLETION'; payload: { taskId: string; date: string } }
-    | { type: 'COMPLETE_ROUTINE'; payload: { routineId: ActiveRoutineId; date: string } }
-    | { type: 'START_PLAYTIME' }
-    | { type: 'REQUEST_QUEST_APPROVAL'; payload: { questId: 'weekly' | 'monthly' } }
-    | { type: 'UPDATE_PARENT_SETTINGS'; payload: Partial<AppState> }
-    | { type: 'APPROVE_QUEST'; payload: { questId: 'weekly' | 'monthly' } }
-    | { type: 'REJECT_QUEST'; payload: { questId: 'weekly' | 'monthly' } }
-    | { type: 'ADJUST_STARS'; payload: { amount: number; reason: string } }
-    | { type: 'INCREMENT_CHARACTER_QUEST'; payload: string }
-    | { type: 'MANUAL_RESET_QUEST'; payload: { questId: 'weekly' | 'monthly' } }
-    | { type: 'SET_LOGGED_IN'; payload: boolean }
-    | { type: 'SHOW_PASSWORD_MODAL' }
-    | { type: 'HIDE_PASSWORD_MODAL' }
-    | { type: 'SET_LOADING'; payload: boolean }
-    | { type: 'SIGN_OUT' }
-    | { type: 'SIGN_IN_AS_GUEST' }
-    | { type: 'COMPLETE_ONBOARDING' };
-
+// Helper to get today's date string in YYYY-MM-DD format, respecting local timezone.
 const getLocalDateString = (date: Date): string => {
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -34,9 +13,34 @@ const getLocalDateString = (date: Date): string => {
     return `${year}-${month}-${day}`;
 };
 
-const initialState: AppState = {
+export const PASSWORD_KEY = 'routine-buddy-pin';
+const APP_STATE_KEY = 'routine-buddy-app-state';
+
+// Define Action types
+type Action =
+    | { type: 'SET_STATE'; payload: Partial<AppState> }
+    | { type: 'TOGGLE_MODE' }
+    | { type: 'SET_ACTIVE_ROUTINE'; payload: AppState['activeRoutine'] }
+    | { type: 'SET_SELECTED_DATE'; payload: string }
+    | { type: 'TOGGLE_TASK_COMPLETION'; payload: { taskId: string; date: string } }
+    | { type: 'COMPLETE_ROUTINE'; payload: { routineId: ActiveRoutineId; date: string } }
+    | { type: 'ADJUST_STARS'; payload: { amount: number; reason: string } }
+    | { type: 'REQUEST_QUEST_APPROVAL'; payload: { questId: QuestId } }
+    | { type: 'APPROVE_QUEST'; payload: { questId: QuestId } }
+    | { type: 'REJECT_QUEST'; payload: { questId: QuestId } }
+    | { type: 'MANUAL_RESET_QUEST'; payload: { questId: QuestId } }
+    | { type: 'START_PLAYTIME' }
+    | { type: 'INCREMENT_CHARACTER_QUEST', payload: string }
+    | { type: 'COMPLETE_ONBOARDING' }
+    | { type: 'SHOW_PASSWORD_MODAL' }
+    | { type: 'HIDE_PASSWORD_MODAL' }
+    | { type: 'AUTH_STATE_CHANGE'; payload: { session: Session | null; isGuest: boolean } }
+    | { type: 'SIGN_IN_AS_GUEST' };
+
+
+// Initial state
+const INITIAL_STATE: AppState = {
     mode: Mode.Child,
-    // FIX: Corrected a typo `new date()` to `new Date()`.
     selectedDate: getLocalDateString(new Date()),
     activeRoutine: 'Morning',
     routines: INITIAL_ROUTINES,
@@ -48,11 +52,11 @@ const initialState: AppState = {
     monthlyQuestPending: false,
     weeklyQuestClaimedDate: null,
     monthlyQuestClaimedDate: null,
-    weeklyQuestLastResetDate: null,
-    monthlyQuestLastResetDate: null,
+    weeklyQuestLastResetDate: getLocalDateString(new Date()),
+    monthlyQuestLastResetDate: getLocalDateString(new Date()),
     starAdjustmentLog: [],
     childName: 'Buddy',
-    playtimeDuration: 10,
+    playtimeDuration: 15,
     playtimeStarted: false,
     enablePlaytime: true,
     enableMorning: true,
@@ -63,75 +67,97 @@ const initialState: AppState = {
     isLoggedIn: false,
     showPasswordModal: false,
     isGuest: false,
-    showOnboarding: false,
+    showOnboarding: true,
 };
-
-const AppContext = React.createContext<{
-    state: AppState;
-    dispatch: React.Dispatch<Action>;
-}>({
-    state: initialState,
-    dispatch: () => null,
-});
 
 const appReducer = (state: AppState, action: Action): AppState => {
     switch (action.type) {
         case 'SET_STATE':
             return { ...state, ...action.payload, isLoading: false };
+        
         case 'TOGGLE_MODE': {
             if (state.mode === Mode.Child) {
-                const hasPassword = !!localStorage.getItem(PASSWORD_KEY);
-                if (hasPassword && !state.isGuest) { // Don't show password modal for guests
+                const pin = localStorage.getItem(PASSWORD_KEY);
+                if (pin) {
                     return { ...state, showPasswordModal: true };
                 }
+                return { ...state, mode: Mode.Parent };
             }
-            return { ...state, mode: state.mode === Mode.Child ? Mode.Parent : Mode.Child };
+            return { ...state, mode: Mode.Child, showPasswordModal: false };
         }
+        
         case 'SHOW_PASSWORD_MODAL':
-             return { ...state, showPasswordModal: true };
+            return { ...state, showPasswordModal: true };
+        
         case 'HIDE_PASSWORD_MODAL':
-             return { ...state, showPasswordModal: false };
-        case 'SET_SELECTED_DATE':
-            return { ...state, selectedDate: action.payload };
+            return { ...state, showPasswordModal: false };
+        
         case 'SET_ACTIVE_ROUTINE':
             return { ...state, activeRoutine: action.payload };
+            
+        case 'SET_SELECTED_DATE':
+            return { ...state, selectedDate: action.payload };
+
         case 'TOGGLE_TASK_COMPLETION': {
             const { taskId, date } = action.payload;
-            const completedTasks = state.taskHistory[date] || [];
-            const newCompletedTasks = completedTasks.includes(taskId)
-                ? completedTasks.filter(id => id !== taskId)
-                : [...completedTasks, taskId];
+            const completedTasks = state.taskHistory[date] ? [...state.taskHistory[date]] : [];
+            const taskIndex = completedTasks.indexOf(taskId);
+            
+            let newStarCount = state.starCount;
+            let newLog = [...state.starAdjustmentLog];
+            const task = Object.values(state.routines).flatMap(r => r.tasks).find(t => t.id === taskId);
+            const reason = `Task: ${task?.title || 'Unknown'}`;
+
+            if (taskIndex > -1) {
+                completedTasks.splice(taskIndex, 1);
+                newStarCount = Math.max(0, state.starCount - 1);
+                newLog.push({ id: new Date().toISOString(), date: new Date().toISOString(), amount: -1, reason: `(Undo) ${reason}` });
+            } else {
+                completedTasks.push(taskId);
+                newStarCount++;
+                newLog.push({ id: new Date().toISOString(), date: new Date().toISOString(), amount: 1, reason });
+            }
+
             return {
                 ...state,
-                taskHistory: {
-                    ...state.taskHistory,
-                    [date]: newCompletedTasks
-                }
+                taskHistory: { ...state.taskHistory, [date]: completedTasks },
+                starCount: newStarCount,
+                starAdjustmentLog: newLog
             };
         }
+        
         case 'COMPLETE_ROUTINE': {
-            const { routineId, date } = action.payload;
-            const routine = state.routines[routineId];
-            if (!routine) return state;
-
-            const reason = `Completed ${routine.name} on ${date}`;
-            
-            // Prevent awarding a star if it has already been awarded for this specific routine and date.
-            if (state.starAdjustmentLog.some(log => log.reason === reason)) {
-                return state;
-            }
+             // Logic to prevent giving a star if it was already given for this routine on this day.
+            const routineCompletionReason = `Routine Complete: ${action.payload.routineId}`;
+            const alreadyAwarded = state.starAdjustmentLog.some(log => 
+                log.reason === routineCompletionReason && getLocalDateString(new Date(log.date)) === action.payload.date
+            );
+            if (alreadyAwarded) return state;
 
             return {
                 ...state,
                 starCount: state.starCount + 1,
-                starAdjustmentLog: [
-                    { id: new Date().toISOString(), date: new Date().toISOString(), amount: 1, reason },
-                    ...state.starAdjustmentLog,
-                ],
+                starAdjustmentLog: [...state.starAdjustmentLog, {
+                    id: new Date().toISOString(),
+                    date: new Date().toISOString(),
+                    amount: 1,
+                    reason: routineCompletionReason
+                }]
             };
         }
-        case 'START_PLAYTIME':
-            return { ...state, playtimeStarted: true };
+        
+        case 'ADJUST_STARS': {
+             return {
+                ...state,
+                starCount: Math.max(0, state.starCount + action.payload.amount),
+                starAdjustmentLog: [...state.starAdjustmentLog, {
+                    id: new Date().toISOString(),
+                    date: new Date().toISOString(),
+                    ...action.payload,
+                }]
+            };
+        }
+        
         case 'REQUEST_QUEST_APPROVAL': {
             const { questId } = action.payload;
             return {
@@ -139,215 +165,169 @@ const appReducer = (state: AppState, action: Action): AppState => {
                 [`${questId}QuestPending`]: true,
             };
         }
-        case 'UPDATE_PARENT_SETTINGS':
-            return { ...state, ...action.payload };
+
         case 'APPROVE_QUEST': {
             const { questId } = action.payload;
             const quest = state.quests[questId];
-            const reason = `Reward for "${quest.name}" quest.`;
+            const rewardAmount = questId === 'weekly' ? 5 : 15; // Example reward amounts
             return {
                 ...state,
-                starCount: state.starCount - quest.goal,
-                starAdjustmentLog: [
-                    { id: new Date().toISOString(), date: new Date().toISOString(), amount: -quest.goal, reason },
-                     ...state.starAdjustmentLog
-                ],
+                starCount: state.starCount + rewardAmount,
                 [`${questId}QuestPending`]: false,
-                [`${questId}QuestClaimedDate`]: new Date().toISOString(),
+                [`${questId}QuestClaimedDate`]: getLocalDateString(new Date()),
+                starAdjustmentLog: [...state.starAdjustmentLog, {
+                    id: new Date().toISOString(),
+                    date: new Date().toISOString(),
+                    amount: rewardAmount,
+                    reason: `Reward for "${quest.name}"`
+                }]
             };
         }
+
         case 'REJECT_QUEST': {
-            return { ...state, [`${action.payload.questId}QuestPending`]: false };
-        }
-        case 'ADJUST_STARS': {
-            const { amount, reason } = action.payload;
+            const { questId } = action.payload;
             return {
                 ...state,
-                starCount: state.starCount + amount,
-                 starAdjustmentLog: [
-                    { id: new Date().toISOString(), date: new Date().toISOString(), amount, reason },
-                    ...state.starAdjustmentLog,
-                ],
+                [`${questId}QuestPending`]: false,
             };
         }
+
         case 'MANUAL_RESET_QUEST': {
             const { questId } = action.payload;
             return {
                 ...state,
+                [`${questId}QuestPending`]: false,
                 [`${questId}QuestClaimedDate`]: null,
-                [`${questId}QuestLastResetDate`]: new Date().toISOString(),
+                [`${questId}QuestLastResetDate`]: getLocalDateString(new Date()),
             };
         }
+
+        case 'START_PLAYTIME':
+            return { ...state, playtimeStarted: true };
+            
         case 'INCREMENT_CHARACTER_QUEST': {
             const questId = action.payload;
-            const today = getLocalDateString(new Date());
-            const quest = state.characterQuests.find(q => q.id === questId);
-            const isCompleting = quest && quest.progress + 1 >= quest.goal;
-            return {
-                ...state,
-                characterQuests: state.characterQuests.map(q => {
-                    if (q.id === questId && q.lastCompletedDate !== today) {
-                        const newProgress = q.progress + 1;
-                        if (newProgress >= q.goal) {
-                             return { ...q, progress: 0, lastCompletedDate: today };
-                        }
-                        return { ...q, progress: newProgress, lastCompletedDate: today };
+            let starAwarded = false;
+            const newQuests = state.characterQuests.map(q => {
+                if (q.id === questId) {
+                    const newProgress = q.progress + 1;
+                    if (newProgress >= q.goal) {
+                        starAwarded = true;
                     }
-                    return q;
-                }),
-                starCount: isCompleting ? state.starCount + 1 : state.starCount,
-                starAdjustmentLog: isCompleting ? [
-                    { id: new Date().toISOString(), date: new Date().toISOString(), amount: 1, reason: `Completed "${quest?.title}" quest!` },
-                    ...state.starAdjustmentLog
-                ] : state.starAdjustmentLog
-            };
+                    return { ...q, progress: newProgress, lastCompletedDate: getLocalDateString(new Date()) };
+                }
+                return q;
+            });
+            const quest = state.characterQuests.find(q => q.id === questId);
+            if (starAwarded && quest) {
+                 return {
+                    ...state,
+                    characterQuests: newQuests,
+                    starCount: state.starCount + 1,
+                    starAdjustmentLog: [...state.starAdjustmentLog, {
+                        id: new Date().toISOString(),
+                        date: new Date().toISOString(),
+                        amount: 1,
+                        reason: `Character Quest: ${quest.title}`
+                    }]
+                };
+            }
+            return { ...state, characterQuests: newQuests };
         }
-        case 'SET_LOGGED_IN':
-            return { ...state, isLoggedIn: action.payload, isLoading: false };
-        case 'SIGN_IN_AS_GUEST':
-            return {
-                ...initialState,
-                isLoggedIn: true,
-                isGuest: true,
-                isLoading: false,
-                selectedDate: getLocalDateString(new Date()),
-                showOnboarding: true,
-            };
-        case 'SIGN_OUT':
-            return { ...initialState, isLoggedIn: false, isLoading: false, isGuest: false };
-        case 'SET_LOADING':
-            return { ...state, isLoading: action.payload };
+        
         case 'COMPLETE_ONBOARDING':
             return { ...state, showOnboarding: false };
+            
+        case 'AUTH_STATE_CHANGE':
+            return { ...state, isLoggedIn: !!action.payload.session, isGuest: action.payload.isGuest, isLoading: false };
+            
+        case 'SIGN_IN_AS_GUEST':
+            return { ...state, isGuest: true, isLoggedIn: true, isLoading: false };
+
         default:
             return state;
     }
 };
 
-/**
- * Prepares the application state for saving to a remote database.
- * It removes transient UI properties and non-serializable data like React components.
- * @param stateToPrepare The full application state.
- * @returns A serializable, partial state object ready for persistence.
- */
-const prepareStateForSaving = (stateToPrepare: AppState): Partial<AppState> => {
-    const { isLoading, isLoggedIn, showPasswordModal, mode, isGuest, ...persistableState } = stateToPrepare;
-    try {
-        // Deep clone to avoid mutations and handle JSON-safe conversion
-        const clonedState = JSON.parse(JSON.stringify(persistableState));
+const AppContext = React.createContext<{
+    state: AppState;
+    dispatch: React.Dispatch<Action>;
+} | undefined>(undefined);
 
-        // The 'theme' object on routines contains a non-serializable React icon.
-        // We must strip it out before saving, keeping only the color.
-        if (clonedState.routines) {
-            for (const key in clonedState.routines) {
-                const routineId = key as ActiveRoutineId;
-                const originalRoutine = stateToPrepare.routines[routineId];
-                if (clonedState.routines[routineId] && originalRoutine?.theme) {
-                    clonedState.routines[routineId].theme = { color: originalRoutine.theme.color };
-                }
-            }
-        }
-        return clonedState;
-    } catch (error) {
-        console.error("Error preparing state for saving. Data will not be persisted.", error);
-        return {}; // Return empty object to prevent saving corrupt data
-    }
+const debounce = <F extends (...args: any[]) => any>(func: F, delay: number) => {
+    let timeout: ReturnType<typeof setTimeout>;
+    return (...args: Parameters<F>): void => {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => func(...args), delay);
+    };
 };
 
+const debouncedSave = debounce((key: string, data: object) => {
+    try {
+        localStorage.setItem(key, JSON.stringify(data));
+    } catch (e) {
+        console.error("Failed to save state to localStorage", e);
+    }
+}, 500);
 
-export const PASSWORD_KEY = 'routine-buddy-pin';
+const debouncedSupabaseUpdate = debounce((isLoggedIn: boolean, isGuest: boolean, stateToSave: object) => {
+    if (isLoggedIn && !isGuest) {
+        updateUserProfile(stateToSave);
+    }
+}, 2000);
+
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const [state, dispatch] = React.useReducer(appReducer, initialState);
-
-    const loadStateFromRemote = React.useCallback(async () => {
-        dispatch({ type: 'SET_LOADING', payload: true });
-        const todayDate = getLocalDateString(new Date());
-
+    const [state, dispatch] = React.useReducer(appReducer, INITIAL_STATE);
+    
+    React.useEffect(() => {
         try {
-            const profile = await getUserProfile();
-            const remoteState = profile?.app_state as Partial<AppState> | null;
-
-            if (remoteState && remoteState.routines && remoteState.quests) {
-                console.log("✅ Remote state loaded successfully:", remoteState);
-                Object.keys(remoteState.routines).forEach(key => {
-                    const routineId = key as ActiveRoutineId;
-                    const remoteRoutine = remoteState.routines![routineId];
-                    const initialRoutine = INITIAL_ROUTINES[routineId];
-
-                    if (remoteRoutine && initialRoutine) {
-                        remoteRoutine.theme = initialRoutine.theme;
-                    }
-                });
-                
-                // Daily/Weekly/Monthly reset logic
-                const lastActiveDate = remoteState.taskHistory ? Object.keys(remoteState.taskHistory).sort().pop() : null;
-                const isNewDay = lastActiveDate !== todayDate;
-
-                dispatch({ 
-                    type: 'SET_STATE', 
-                    payload: { 
-                        ...remoteState, 
-                        selectedDate: todayDate, 
-                        playtimeStarted: isNewDay ? false : remoteState.playtimeStarted,
-                        isLoggedIn: true 
-                    } 
-                });
+            const savedState = localStorage.getItem(APP_STATE_KEY);
+            if (savedState) {
+                const parsedState = JSON.parse(savedState);
+                dispatch({ type: 'SET_STATE', payload: { ...INITIAL_STATE, ...parsedState, isLoading: true } });
             } else {
-                console.log("ℹ️ No valid remote state found for user. Initializing with default state.");
-                dispatch({ type: 'SET_STATE', payload: { ...initialState, selectedDate: todayDate, isLoggedIn: true, isLoading: false, showOnboarding: true } });
+                dispatch({ type: 'SET_STATE', payload: { isLoading: true } });
             }
-        } catch (error) {
-            console.error("❌ Critical error during state loading. Resetting to default state.", error);
-            dispatch({ type: 'SET_STATE', payload: { ...initialState, selectedDate: todayDate, isLoggedIn: true, isLoading: false, showOnboarding: true } });
+        } catch (e) {
+            console.error("Failed to load state from localStorage", e);
+            dispatch({ type: 'SET_STATE', payload: { isLoading: true } });
         }
     }, []);
-    
-    // Handles all authentication state changes, including initial load.
+
     React.useEffect(() => {
         if (!supabase) {
-            dispatch({ type: 'SIGN_OUT' });
+            dispatch({ type: 'SET_STATE', payload: { isLoading: false } });
             return;
         }
 
-        // The onAuthStateChange listener handles all auth events:
-        // SIGNED_IN, SIGNED_OUT, and INITIAL_SESSION on page load.
-        const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
             if (session) {
-                // User is signed in or session was restored.
-                loadStateFromRemote();
+                const profile = await getUserProfile();
+                if (profile && profile.app_state) {
+                    dispatch({ type: 'SET_STATE', payload: { ...state, ...profile.app_state, isLoading: false, isLoggedIn: true, isGuest: false } });
+                } else {
+                    dispatch({ type: 'AUTH_STATE_CHANGE', payload: { session, isGuest: false } });
+                }
             } else {
-                // User is signed out.
-                dispatch({ type: 'SIGN_OUT' });
+                 dispatch({ type: 'AUTH_STATE_CHANGE', payload: { session, isGuest: false } });
             }
         });
-        
-        return () => {
-            authListener?.subscription.unsubscribe();
-        };
-    }, [loadStateFromRemote]);
 
-    // Debounced effect for persisting state to Supabase
+        return () => subscription.unsubscribe();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
     React.useEffect(() => {
-        const { isLoggedIn, isLoading, isGuest } = state;
-        // Guard clauses: don't save if not logged in, if loading initial state, or if in guest mode.
-        if (!isLoggedIn || isLoading || isGuest) {
-            return;
-        }
-
-        const handler = setTimeout(() => {
-            const stateToPersist = prepareStateForSaving(state);
-            // Final check to ensure we don't save an empty object if preparation failed
-            if (stateToPersist && Object.keys(stateToPersist).length > 0) {
-                 updateUserProfile(stateToPersist);
+        const { isLoading, showPasswordModal, ...stateToSave } = state;
+        
+        if (!isLoading) {
+             if (state.isGuest || !state.isLoggedIn) {
+                debouncedSave(APP_STATE_KEY, stateToSave);
             }
-        }, 1500); // Debounce saves to avoid excessive database writes
-
-        return () => {
-            clearTimeout(handler);
-        };
-    }, [state]); // Re-run whenever the state object changes
-
+            debouncedSupabaseUpdate(state.isLoggedIn, state.isGuest, stateToSave);
+        }
+    }, [state]);
 
     return (
         <AppContext.Provider value={{ state, dispatch }}>
@@ -356,4 +336,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     );
 };
 
-export const useAppContext = () => React.useContext(AppContext);
+export const useAppContext = () => {
+    const context = React.useContext(AppContext);
+    if (context === undefined) {
+        throw new Error('useAppContext must be used within an AppProvider');
+    }
+    return context;
+};
