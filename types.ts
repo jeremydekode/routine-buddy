@@ -81,6 +81,8 @@ export interface AppState {
     monthlyQuestClaimedDate: string | null;
     weeklyQuestLastResetDate: string | null;
     monthlyQuestLastResetDate: string | null;
+    weeklyQuestProgressOverride: number | null;
+    monthlyQuestProgressOverride: number | null;
     starAdjustmentLog: StarAdjustmentLogEntry[];
     childName: string;
     playtimeDuration: number; // in minutes

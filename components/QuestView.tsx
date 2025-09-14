@@ -86,19 +86,36 @@ const QuestProgress: React.FC<QuestProgressProps> = ({ quest, currentStars, isPe
 
 const StarQuests: React.FC = () => {
     const { state } = useAppContext();
-    const { quests, starCount, weeklyQuestPending, monthlyQuestPending, starAdjustmentLog, weeklyQuestClaimedDate, monthlyQuestClaimedDate, weeklyQuestLastResetDate, monthlyQuestLastResetDate } = state;
+    const { 
+        quests, 
+        starCount, 
+        weeklyQuestPending, 
+        monthlyQuestPending, 
+        starAdjustmentLog, 
+        weeklyQuestClaimedDate, 
+        monthlyQuestClaimedDate, 
+        weeklyQuestLastResetDate, 
+        monthlyQuestLastResetDate,
+        weeklyQuestProgressOverride,
+        monthlyQuestProgressOverride
+    } = state;
 
     const starsEarnedThisWeek = React.useMemo(() => {
+        if (weeklyQuestProgressOverride !== null) {
+            return weeklyQuestProgressOverride;
+        }
         if (!weeklyQuestLastResetDate) {
-            // If never reset, count all stars. The user can reset to start the first period.
             return starAdjustmentLog.reduce((sum, log) => sum + log.amount, 0);
         }
         return starAdjustmentLog
             .filter(log => new Date(log.date) >= new Date(weeklyQuestLastResetDate))
             .reduce((sum, log) => sum + log.amount, 0);
-    }, [starAdjustmentLog, weeklyQuestLastResetDate]);
+    }, [starAdjustmentLog, weeklyQuestLastResetDate, weeklyQuestProgressOverride]);
 
     const starsEarnedThisMonth = React.useMemo(() => {
+        if (monthlyQuestProgressOverride !== null) {
+            return monthlyQuestProgressOverride;
+        }
          if (!monthlyQuestLastResetDate) {
             return starAdjustmentLog
                 .filter(log => log.amount > 0 || (log.amount < 0 && !log.reason.startsWith('Reward for')))
@@ -115,7 +132,7 @@ const StarQuests: React.FC = () => {
                 }
                 return sum;
             }, 0);
-    }, [starAdjustmentLog, monthlyQuestLastResetDate]);
+    }, [starAdjustmentLog, monthlyQuestLastResetDate, monthlyQuestProgressOverride]);
 
     return (
         <div className="space-y-4">

@@ -29,6 +29,7 @@ type Action =
     | { type: 'APPROVE_QUEST'; payload: { questId: QuestId } }
     | { type: 'REJECT_QUEST'; payload: { questId: QuestId } }
     | { type: 'MANUAL_RESET_QUEST'; payload: { questId: QuestId } }
+    | { type: 'SET_QUEST_PROGRESS_OVERRIDE'; payload: { questId: QuestId; value: number | null } }
     | { type: 'START_PLAYTIME' }
     | { type: 'INCREMENT_CHARACTER_QUEST', payload: string }
     | { type: 'COMPLETE_ONBOARDING' }
@@ -54,6 +55,8 @@ const INITIAL_STATE: AppState = {
     monthlyQuestClaimedDate: null,
     weeklyQuestLastResetDate: getLocalDateString(new Date()),
     monthlyQuestLastResetDate: getLocalDateString(new Date()),
+    weeklyQuestProgressOverride: null,
+    monthlyQuestProgressOverride: null,
     starAdjustmentLog: [],
     childName: 'Buddy',
     playtimeDuration: 15,
@@ -199,6 +202,15 @@ const appReducer = (state: AppState, action: Action): AppState => {
                 [`${questId}QuestPending`]: false,
                 [`${questId}QuestClaimedDate`]: null,
                 [`${questId}QuestLastResetDate`]: getLocalDateString(new Date()),
+                [`${questId}QuestProgressOverride`]: null, // Clear override on reset
+            };
+        }
+
+        case 'SET_QUEST_PROGRESS_OVERRIDE': {
+            const { questId, value } = action.payload;
+            return {
+                ...state,
+                [`${questId}QuestProgressOverride`]: value,
             };
         }
 
