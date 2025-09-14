@@ -281,12 +281,30 @@ const debouncedSupabaseUpdate = debounce((isLoggedIn: boolean, isGuest: boolean,
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [state, dispatch] = React.useReducer(appReducer, INITIAL_STATE);
     
+    // FIX: This function rehydrates the non-serializable parts of the state (like theme icons)
+    // after loading from a data source like localStorage or Supabase.
+    const rehydrateState = React.useCallback((stateToRehydrate: Partial<AppState>): Partial<AppState> => {
+        const rehydratedState = { ...stateToRehydrate };
+        if (rehydratedState.routines) {
+            for (const key in rehydratedState.routines) {
+                const routineId = key as ActiveRoutineId;
+                if (INITIAL_ROUTINES[routineId] && rehydratedState.routines[routineId]) {
+                    // This ensures the theme object with its component icon is restored.
+                    rehydratedState.routines[routineId].theme = INITIAL_ROUTINES[routineId].theme;
+                }
+            }
+        }
+        return rehydratedState;
+    }, []);
+    
     React.useEffect(() => {
         try {
             const savedState = localStorage.getItem(APP_STATE_KEY);
             if (savedState) {
                 const parsedState = JSON.parse(savedState);
-                dispatch({ type: 'SET_STATE', payload: { ...INITIAL_STATE, ...parsedState, isLoading: true } });
+                // FIX: Rehydrate state to restore icons and other non-serializable data.
+                const rehydratedState = rehydrateState(parsedState);
+                dispatch({ type: 'SET_STATE', payload: { ...INITIAL_STATE, ...rehydratedState, isLoading: true } });
             } else {
                 dispatch({ type: 'SET_STATE', payload: { isLoading: true } });
             }
@@ -294,7 +312,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             console.error("Failed to load state from localStorage", e);
             dispatch({ type: 'SET_STATE', payload: { isLoading: true } });
         }
-    }, []);
+    }, [rehydrateState]);
 
     React.useEffect(() => {
         if (!supabase) {
@@ -306,7 +324,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             if (session) {
                 const profile = await getUserProfile();
                 if (profile && profile.app_state) {
-                    dispatch({ type: 'SET_STATE', payload: { ...state, ...profile.app_state, isLoading: false, isLoggedIn: true, isGuest: false } });
+                    // FIX: Rehydrate state from Supabase to restore icons.
+                    const rehydratedState = rehydrateState(profile.app_state);
+                    dispatch({ type: 'SET_STATE', payload: { ...state, ...rehydratedState, isLoading: false, isLoggedIn: true, isGuest: false } });
                 } else {
                     dispatch({ type: 'AUTH_STATE_CHANGE', payload: { session, isGuest: false } });
                 }
@@ -317,7 +337,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
         return () => subscription.unsubscribe();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    }, [rehydrateState]);
 
     React.useEffect(() => {
         const { isLoading, showPasswordModal, ...stateToSave } = state;
