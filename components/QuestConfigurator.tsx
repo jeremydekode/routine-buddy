@@ -1,7 +1,7 @@
 
 
 import * as React from 'react';
-import { Quest } from '../types';
+import { Quest, StarAdjustmentLogEntry } from '../types';
 import { useAppContext } from '../hooks/useAppContext';
 
 interface QuestEditorCardProps {
@@ -59,66 +59,62 @@ const ManualAdjustment: React.FC<{
 }> = ({ questId, quest, lastResetDate, progressOverride }) => {
     const { state, dispatch } = useAppContext();
     const { starAdjustmentLog } = state;
-    const [overrideValue, setOverrideValue] = React.useState<string>(progressOverride?.toString() ?? '');
+    const [adjustmentValue, setAdjustmentValue] = React.useState('');
 
     const calculatedProgress = React.useMemo(() => {
-        if (questId === 'weekly') {
-            if (!lastResetDate) return starAdjustmentLog.reduce((sum, log) => sum + log.amount, 0);
-            return starAdjustmentLog
-                .filter(log => new Date(log.date) >= new Date(lastResetDate))
-                .reduce((sum, log) => sum + log.amount, 0);
-        } else { // monthly
-             if (!lastResetDate) {
-                return starAdjustmentLog
-                    .filter(log => log.amount > 0 || (log.amount < 0 && !log.reason.startsWith('Reward for')))
-                    .reduce((sum, log) => sum + log.amount, 0);
-            }
-            return starAdjustmentLog
-                .filter(log => new Date(log.date) >= new Date(lastResetDate))
-                .reduce((sum, log) => {
-                     if (log.amount > 0) return sum + log.amount;
-                     if (log.amount < 0 && !log.reason.startsWith('Reward for')) return sum + log.amount;
-                     return sum;
-                }, 0);
-        }
-    }, [starAdjustmentLog, lastResetDate, questId]);
+        const calculateQuestProgress = (logs: StarAdjustmentLogEntry[]): number => {
+            return logs.reduce((sum, log) => {
+                if (log.reason.startsWith('Reward for')) {
+                    return sum;
+                }
+                return sum + log.amount;
+            }, 0);
+        };
 
-    const handleSetOverride = () => {
-        const value = parseInt(overrideValue, 10);
-        if (!isNaN(value)) {
-            dispatch({ type: 'SET_QUEST_PROGRESS_OVERRIDE', payload: { questId, value } });
-        }
+        const relevantLogs = lastResetDate
+            ? starAdjustmentLog.filter(log => new Date(log.date).getTime() >= new Date(lastResetDate).getTime())
+            : starAdjustmentLog;
+            
+        return calculateQuestProgress(relevantLogs);
+    }, [starAdjustmentLog, lastResetDate]);
+
+    const handleAdjustProgress = () => {
+        const adjustment = parseInt(adjustmentValue, 10);
+        if (isNaN(adjustment)) return;
+
+        const currentProgress = progressOverride ?? calculatedProgress;
+        const newProgress = Math.max(0, currentProgress + adjustment);
+
+        dispatch({ type: 'SET_QUEST_PROGRESS_OVERRIDE', payload: { questId, value: newProgress } });
+        setAdjustmentValue('');
     };
 
     const handleClearOverride = () => {
-        setOverrideValue('');
         dispatch({ type: 'SET_QUEST_PROGRESS_OVERRIDE', payload: { questId, value: null } });
     };
 
-    React.useEffect(() => {
-        setOverrideValue(progressOverride?.toString() ?? '');
-    }, [progressOverride]);
+    const displayProgress = progressOverride ?? calculatedProgress;
 
     return (
         <div>
             <h4 className="font-medium text-slate-700">Adjust {questId === 'weekly' ? 'Weekly' : 'Monthly'} Progress</h4>
             <p className="text-xs text-slate-500 mb-2">
-                Current calculated progress: <strong>{calculatedProgress} / {quest.goal} stars</strong>. 
-                {progressOverride !== null && <span className="text-purple-600 font-bold"> (Overridden to {progressOverride})</span>}
+                Current progress: <strong>{displayProgress} / {quest.goal} stars</strong>. 
+                {progressOverride !== null && <span className="text-purple-600 font-bold"> (Manually set)</span>}
             </p>
             <div className="flex gap-2 items-center">
                 <input
                     type="number"
-                    value={overrideValue}
-                    onChange={e => setOverrideValue(e.target.value)}
-                    placeholder="Set stars..."
+                    value={adjustmentValue}
+                    onChange={e => setAdjustmentValue(e.target.value)}
+                    placeholder="e.g., 5 or -2"
                     className="flex-grow p-2 border border-slate-300 rounded-lg text-sm"
                 />
-                <button onClick={handleSetOverride} className="bg-purple-500 text-white font-bold py-2 px-3 rounded-lg hover:bg-purple-600 transition text-sm">Set</button>
+                <button onClick={handleAdjustProgress} className="bg-purple-500 text-white font-bold py-2 px-3 rounded-lg hover:bg-purple-600 transition text-sm">Adjust</button>
             </div>
              {progressOverride !== null && (
                 <button onClick={handleClearOverride} className="text-xs text-slate-500 hover:text-red-500 font-semibold mt-2 transition">
-                    Clear Override
+                    Clear Manual Adjustment
                 </button>
             )}
         </div>
@@ -151,10 +147,7 @@ export const QuestConfigurator: React.FC<QuestConfiguratorProps> = ({
     };
 
     const handleReset = (questId: 'weekly' | 'monthly') => {
-        const questName = questId === 'weekly' ? 'weekly' : 'monthly';
-        if (window.confirm(`Are you sure you want to reset the ${questName} quest progress? This will start a new period and cannot be undone.`)) {
-            dispatch({ type: 'MANUAL_RESET_QUEST', payload: { questId } });
-        }
+        dispatch({ type: 'MANUAL_RESET_QUEST', payload: { questId } });
     };
 
     return (

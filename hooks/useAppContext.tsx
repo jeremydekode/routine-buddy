@@ -53,8 +53,8 @@ const INITIAL_STATE: AppState = {
     monthlyQuestPending: false,
     weeklyQuestClaimedDate: null,
     monthlyQuestClaimedDate: null,
-    weeklyQuestLastResetDate: getLocalDateString(new Date()),
-    monthlyQuestLastResetDate: getLocalDateString(new Date()),
+    weeklyQuestLastResetDate: new Date().toISOString(),
+    monthlyQuestLastResetDate: new Date().toISOString(),
     weeklyQuestProgressOverride: null,
     monthlyQuestProgressOverride: null,
     starAdjustmentLog: [],
@@ -105,27 +105,16 @@ const appReducer = (state: AppState, action: Action): AppState => {
             const { taskId, date } = action.payload;
             const completedTasks = state.taskHistory[date] ? [...state.taskHistory[date]] : [];
             const taskIndex = completedTasks.indexOf(taskId);
-            
-            let newStarCount = state.starCount;
-            let newLog = [...state.starAdjustmentLog];
-            const task = Object.values(state.routines).flatMap(r => r.tasks).find(t => t.id === taskId);
-            const reason = `Task: ${task?.title || 'Unknown'}`;
 
             if (taskIndex > -1) {
                 completedTasks.splice(taskIndex, 1);
-                newStarCount = Math.max(0, state.starCount - 1);
-                newLog.push({ id: new Date().toISOString(), date: new Date().toISOString(), amount: -1, reason: `(Undo) ${reason}` });
             } else {
                 completedTasks.push(taskId);
-                newStarCount++;
-                newLog.push({ id: new Date().toISOString(), date: new Date().toISOString(), amount: 1, reason });
             }
 
             return {
                 ...state,
                 taskHistory: { ...state.taskHistory, [date]: completedTasks },
-                starCount: newStarCount,
-                starAdjustmentLog: newLog
             };
         }
         
@@ -201,7 +190,7 @@ const appReducer = (state: AppState, action: Action): AppState => {
                 ...state,
                 [`${questId}QuestPending`]: false,
                 [`${questId}QuestClaimedDate`]: null,
-                [`${questId}QuestLastResetDate`]: getLocalDateString(new Date()),
+                [`${questId}QuestLastResetDate`]: new Date().toISOString(),
                 [`${questId}QuestProgressOverride`]: null, // Clear override on reset
             };
         }

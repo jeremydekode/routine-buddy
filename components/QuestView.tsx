@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { useAppContext } from '../hooks/useAppContext';
-import { Quest } from '../types';
+import { Quest, StarAdjustmentLogEntry } from '../types';
 import { StarIcon, HeartIcon, TrophyIcon } from './icons/Icons';
 import { CharacterQuestView } from './CharacterQuestView';
 
@@ -84,6 +84,18 @@ const QuestProgress: React.FC<QuestProgressProps> = ({ quest, currentStars, isPe
     );
 };
 
+// Helper function to calculate quest progress from star logs
+const calculateQuestProgress = (logs: StarAdjustmentLogEntry[]): number => {
+    return logs.reduce((sum, log) => {
+        // Exclude stars from quest rewards from counting towards progress
+        if (log.reason.startsWith('Reward for')) {
+            return sum;
+        }
+        return sum + log.amount;
+    }, 0);
+};
+
+
 const StarQuests: React.FC = () => {
     const { state } = useAppContext();
     const { 
@@ -104,35 +116,22 @@ const StarQuests: React.FC = () => {
         if (weeklyQuestProgressOverride !== null) {
             return weeklyQuestProgressOverride;
         }
-        if (!weeklyQuestLastResetDate) {
-            return starAdjustmentLog.reduce((sum, log) => sum + log.amount, 0);
-        }
-        return starAdjustmentLog
-            .filter(log => new Date(log.date) >= new Date(weeklyQuestLastResetDate))
-            .reduce((sum, log) => sum + log.amount, 0);
+        const relevantLogs = weeklyQuestLastResetDate
+            ? starAdjustmentLog.filter(log => new Date(log.date) >= new Date(weeklyQuestLastResetDate))
+            : starAdjustmentLog;
+        return calculateQuestProgress(relevantLogs);
     }, [starAdjustmentLog, weeklyQuestLastResetDate, weeklyQuestProgressOverride]);
 
     const starsEarnedThisMonth = React.useMemo(() => {
         if (monthlyQuestProgressOverride !== null) {
             return monthlyQuestProgressOverride;
         }
-         if (!monthlyQuestLastResetDate) {
-            return starAdjustmentLog
-                .filter(log => log.amount > 0 || (log.amount < 0 && !log.reason.startsWith('Reward for')))
-                .reduce((sum, log) => sum + log.amount, 0);
-        }
-        return starAdjustmentLog
-            .filter(log => new Date(log.date) >= new Date(monthlyQuestLastResetDate))
-            .reduce((sum, log) => {
-                 if (log.amount > 0) {
-                    return sum + log.amount;
-                }
-                if (log.amount < 0 && !log.reason.startsWith('Reward for')) {
-                    return sum + log.amount;
-                }
-                return sum;
-            }, 0);
+        const relevantLogs = monthlyQuestLastResetDate
+            ? starAdjustmentLog.filter(log => new Date(log.date) >= new Date(monthlyQuestLastResetDate))
+            : starAdjustmentLog;
+        return calculateQuestProgress(relevantLogs);
     }, [starAdjustmentLog, monthlyQuestLastResetDate, monthlyQuestProgressOverride]);
+
 
     return (
         <div className="space-y-4">
