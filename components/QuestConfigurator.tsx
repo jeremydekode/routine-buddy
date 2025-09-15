@@ -72,7 +72,7 @@ const ManualAdjustment: React.FC<{
         };
 
         const relevantLogs = lastResetDate
-            ? starAdjustmentLog.filter(log => new Date(log.date).getTime() >= new Date(lastResetDate).getTime())
+            ? starAdjustmentLog.filter(log => log.date >= (lastResetDate || ''))
             : starAdjustmentLog;
             
         return calculateQuestProgress(relevantLogs);

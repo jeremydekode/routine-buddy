@@ -326,7 +326,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 if (profile && profile.app_state) {
                     // FIX: Rehydrate state from Supabase to restore icons.
                     const rehydratedState = rehydrateState(profile.app_state);
-                    dispatch({ type: 'SET_STATE', payload: { ...state, ...rehydratedState, isLoading: false, isLoggedIn: true, isGuest: false } });
+                    // FIX: Removed stale `...state` from payload to prevent overwriting current state with initial state.
+                    dispatch({ type: 'SET_STATE', payload: { ...rehydratedState, isLoading: false, isLoggedIn: true, isGuest: false } });
                 } else {
                     dispatch({ type: 'AUTH_STATE_CHANGE', payload: { session, isGuest: false } });
                 }

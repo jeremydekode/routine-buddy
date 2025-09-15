@@ -117,7 +117,7 @@ const StarQuests: React.FC = () => {
             return weeklyQuestProgressOverride;
         }
         const relevantLogs = weeklyQuestLastResetDate
-            ? starAdjustmentLog.filter(log => new Date(log.date) >= new Date(weeklyQuestLastResetDate))
+            ? starAdjustmentLog.filter(log => log.date >= weeklyQuestLastResetDate)
             : starAdjustmentLog;
         return calculateQuestProgress(relevantLogs);
     }, [starAdjustmentLog, weeklyQuestLastResetDate, weeklyQuestProgressOverride]);
@@ -127,7 +127,7 @@ const StarQuests: React.FC = () => {
             return monthlyQuestProgressOverride;
         }
         const relevantLogs = monthlyQuestLastResetDate
-            ? starAdjustmentLog.filter(log => new Date(log.date) >= new Date(monthlyQuestLastResetDate))
+            ? starAdjustmentLog.filter(log => log.date >= monthlyQuestLastResetDate)
             : starAdjustmentLog;
         return calculateQuestProgress(relevantLogs);
     }, [starAdjustmentLog, monthlyQuestLastResetDate, monthlyQuestProgressOverride]);
